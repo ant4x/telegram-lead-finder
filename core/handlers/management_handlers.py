@@ -5,7 +5,6 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 
 from core.keyboards.delete_kb import get_delete_choice_keyboard, get_delete_confirmation_keyboard
-from core.settings import settings
 from core.utils.telethon_client import resolve_channel
 from core.database.shillometr import add_channel, get_all_channels_with_details, delete_channel_by_id, \
     find_channel
@@ -20,10 +19,6 @@ from core.utils.messages import send_lines
 
 
 async def add_channel_start(message: Message, state: FSMContext):
-    if message.from_user.id not in settings.bots.admins_id:
-        await message.answer("❌ У вас нет прав для выполнения этой команды.")
-        return
-
     await state.clear()
     await message.answer("➡️ Вы вошли в режим добавления каналов.\n\n"
                          "👉 Отправьте юзернейм, ID, или ссылку на канал."
@@ -61,10 +56,6 @@ async def cancel_dialog(message: Message, state: FSMContext):
 
 
 async def list_channels_command(message: Message):
-    if message.from_user.id not in settings.bots.admins_id:
-        await message.answer("❌ У вас нет прав для выполнения этой команды.")
-        return
-
     channels = await get_all_channels_with_details()
     if not channels:
         await message.answer("❌ Список отслеживаемых каналов пуст. Добавьте каналы с помощью команды /add_channel.")
@@ -76,7 +67,6 @@ async def list_channels_command(message: Message):
 
 
 async def delete_channel_start(message: Message, state: FSMContext):
-    if message.from_user.id not in settings.bots.admins_id: return
     await state.clear()
     await message.answer(
         "⁉️ Как вы хотите удалить канал?",
@@ -181,7 +171,6 @@ async def process_delete_confirmation(callback: CallbackQuery, state: FSMContext
 
 
 async def add_project_start(message: Message, state: FSMContext):
-    if message.from_user.id not in settings.bots.admins_id: return
     await state.clear()
     await message.answer("➡️ Вы вошли в режим добавления проектов для мониторинга.\n\n"
                          "👉 Введите название проекта.\n"
@@ -208,8 +197,6 @@ async def process_project_add_name(message: Message, state: FSMContext):
 
 
 async def list_projects_command(message: Message):
-    if message.from_user.id not in settings.bots.admins_id: return
-
     projects = await get_all_projects()
 
     if not projects:
@@ -222,8 +209,6 @@ async def list_projects_command(message: Message):
 
 
 async def delete_project_start(message: Message):
-    if message.from_user.id not in settings.bots.admins_id: return
-
     projects = await get_all_projects()
     if not projects:
         await message.answer("🛑 Список проектов пуст, удалять нечего.")

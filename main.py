@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import BotCommand
 from aiogram.filters.state import StateFilter
 from core.settings import settings
-from core.handlers.basic import start, filter_text
+from core.handlers.basic import start, filter_text, admins_only
 from core.handlers.management_handlers import (
     add_channel_start, process_channel_identifier, cancel_dialog, list_channels_command,
     delete_channel_start, process_delete_choice, process_delete_from_list,
@@ -24,6 +24,9 @@ from core.monitoring.listener import start_monitoring
 
 
 INITIAL_CHANNELS = []
+
+ADMIN_COMMANDS = ("analyze", "add_channel", "del_channel", "list_channels", "add_project", "del_project",
+                  "list_projects")
 
 
 async def set_command(bot: Bot):
@@ -52,39 +55,45 @@ async def main():
 
     await create_tables()
 
-    # Регистрация базовых команд
     dp.message.register(start, Command(commands="start"))
-
     dp.message.register(cancel_dialog, Command(commands="cancel"))
 
-    dp.message.register(add_channel_start, Command(commands="add_channel"))
-    dp.message.register(process_channel_identifier, AddChannelStates.waiting_for_identifier)
+    # Every other command, its dialog steps and its buttons are for admins only: the filter is checked on
+    # each message and button press, because anyone can send a bot any button data.
+    admin = F.from_user.id.in_(set(settings.bots.admins_id))
 
-    dp.message.register(list_channels_command, Command(commands="list_channels"))
+    dp.message.register(add_channel_start, Command(commands="add_channel"), admin)
+    dp.message.register(process_channel_identifier, AddChannelStates.waiting_for_identifier, admin)
 
-    dp.message.register(delete_channel_start, Command(commands="del_channel"))
-    dp.callback_query.register(process_delete_choice, DeleteChannelStates.waiting_for_choice)
-    dp.message.register(process_delete_by_name, DeleteChannelStates.waiting_for_name)
-    dp.callback_query.register(process_delete_from_list, F.data.startswith("del_channel"))
-    dp.callback_query.register(process_delete_confirmation, F.data.startswith("del_confirm:"))
+    dp.message.register(list_channels_command, Command(commands="list_channels"), admin)
 
-    dp.message.register(add_project_start, Command(commands="add_project"))
-    dp.message.register(process_project_add_name, ProjectManagementStates.waiting_for_add_name)
+    dp.message.register(delete_channel_start, Command(commands="del_channel"), admin)
+    dp.callback_query.register(process_delete_choice, DeleteChannelStates.waiting_for_choice,
+                               F.data.startswith("del_choice:"), admin)
+    dp.message.register(process_delete_by_name, DeleteChannelStates.waiting_for_name, admin)
+    dp.callback_query.register(process_delete_from_list, F.data.startswith("del_channel"), admin)
+    dp.callback_query.register(process_delete_confirmation, F.data.startswith("del_confirm:"), admin)
 
-    dp.message.register(list_projects_command, Command(commands="list_projects"))
+    dp.message.register(add_project_start, Command(commands="add_project"), admin)
+    dp.message.register(process_project_add_name, ProjectManagementStates.waiting_for_add_name, admin)
 
-    dp.message.register(delete_project_start, Command(commands="del_project"))
-    dp.callback_query.register(process_project_deletion, F.data.startswith("del_project"))
+    dp.message.register(list_projects_command, Command(commands="list_projects"), admin)
 
-    # Функция анализа
-    dp.message.register(start_dialog_analyzer, Command("analyze"))
-    dp.message.register(process_project_name, AnalyzeStates.waiting_for_project_name)
-    dp.callback_query.register(process_days_selection, AnalyzeStates.waiting_for_days)
-    dp.callback_query.register(process_confirmation, AnalyzeStates.waiting_for_confirmation)
+    dp.message.register(delete_project_start, Command(commands="del_project"), admin)
+    dp.callback_query.register(process_project_deletion, F.data.startswith("del_project"), admin)
+
+    dp.message.register(start_dialog_analyzer, Command("analyze"), admin)
+    dp.message.register(process_project_name, AnalyzeStates.waiting_for_project_name, admin)
+    dp.callback_query.register(process_days_selection, AnalyzeStates.waiting_for_days,
+                               F.data.startswith("days_"), admin)
+    dp.callback_query.register(process_confirmation, AnalyzeStates.waiting_for_confirmation,
+                               F.data.in_({"analyze_confirm", "analyze_cancel"}), admin)
     dp.callback_query.register(
         process_report_details,
-        F.data.in_({"report_channels", "report_posts", "report_all", "report_close"})
+        F.data.in_({"report_channels", "report_posts", "report_all", "report_close"}), admin
     )
+
+    dp.message.register(admins_only, Command(*ADMIN_COMMANDS))
 
     # Фильтры
     dp.message.register(filter_text, StateFilter(None), F.text & ~F.text.startswith('/'))

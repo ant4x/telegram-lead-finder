@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from html import escape
 from aiogram import Bot
@@ -14,24 +15,18 @@ from core.database.shillometr import get_all_channels
 from core.utils.messages import send_lines
 
 
-IS_SCAN_RUNNING = False
 SCAN_RESULTS_CACHE = {}
 
+# The running scan. Keeping the task here also keeps it alive: asyncio holds only a weak reference to tasks.
+scan_task: asyncio.Task | None = None
 
-async def run_scan_with_lock(*args, **kwargs):
-    global IS_SCAN_RUNNING
-    if IS_SCAN_RUNNING:
-        return
 
-    IS_SCAN_RUNNING = True
-    print(">>> [LOCK] Анализ запущен, блокировка установлена.")
+async def run_scan(**kwargs):
+    """One scan in the background. Nobody awaits the task, so its errors go to the log here."""
     try:
-        await start_full_scan(*args, **kwargs)
-    except Exception as e:
-        print(f"ОШИБКА в задаче сканирования: {e}")
-    finally:
-        IS_SCAN_RUNNING = False
-        print(">>> [LOCK] Анализ завершен, блокировка снята.")
+        await start_full_scan(**kwargs)
+    except Exception:
+        logging.exception("Scan failed")
 
 
 async def start_dialog_analyzer(message: Message, state: FSMContext):
@@ -66,47 +61,39 @@ async def process_days_selection(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    global scan_task
     await callback.message.edit_reply_markup(reply_markup=None)
 
-    if IS_SCAN_RUNNING:
-        await callback.message.edit_text("⚠️ В данный момент уже выполняется другой анализ. "
-                                         "Пожалуйста, дождитесь его завершения и попробуйте снова.")
-        await state.clear()
-        await callback.answer()
-        return
-
-    if callback.data == "analyze_confirm":
+    if callback.data == "analyze_cancel":
+        await callback.message.edit_text("🚫 Анализ отменен.")
+    else:
         user_data = await state.get_data()
         project_name = user_data.get('project_name')
         days = user_data.get('days')
-
         channels_from_db = await get_all_channels()
 
         if not channels_from_db:
             await callback.message.edit_text("🚫 В базе данных нет каналов для анализа. "
                                              "Сначала добавьте их с помощью команды /add_channel.")
-            await state.clear()
-            await callback.answer()
-            return
-
-        await callback.message.edit_text(
-            f"✅ Отлично! Запускаю анализ проекта '<b>{escape(project_name)}</b>' за последние <b>{days}</b> дней.\n\n"
-            f"Это может занять несколько минут. Результаты придут отдельным сообщением.",
-            parse_mode="HTML"
-        )
-
-        asyncio.create_task(run_scan_with_lock(
-            client=telethon_client,
-            bot=bot,
-            user_id=callback.from_user.id,
-            channels=channels_from_db,
-            keywords=[project_name],
-            results_cache=SCAN_RESULTS_CACHE,
-            days=days
-        ))
-
-    elif callback.data == "analyze_cancel":
-        await callback.message.edit_text("🚫 Анализ отменен.")
+        # No await between this check and create_task, so two presses cannot both start a scan.
+        elif scan_task and not scan_task.done():
+            await callback.message.edit_text("⚠️ В данный момент уже выполняется другой анализ. "
+                                             "Пожалуйста, дождитесь его завершения и попробуйте снова.")
+        else:
+            scan_task = asyncio.create_task(run_scan(
+                client=telethon_client,
+                bot=bot,
+                user_id=callback.from_user.id,
+                channels=channels_from_db,
+                keywords=[project_name],
+                results_cache=SCAN_RESULTS_CACHE,
+                days=days
+            ))
+            await callback.message.edit_text(
+                f"✅ Отлично! Запускаю анализ проекта '<b>{escape(project_name)}</b>' за последние <b>{days}</b> дней.\n\n"
+                f"Это может занять несколько минут. Результаты придут отдельным сообщением.",
+                parse_mode="HTML"
+            )
 
     await callback.answer()
     await state.clear()
