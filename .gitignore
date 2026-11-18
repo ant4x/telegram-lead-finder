@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.idea/
+.vscode/
+
+# Local config with the bot token and Telegram API keys
+.env
+input
+
+# Telethon session: full access to the Telegram account
+*.session
+*.session-journal
+
+# Local database
+*.db
