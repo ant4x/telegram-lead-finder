@@ -91,7 +91,7 @@ async def get_all_projects() -> List[Tuple[int, str]]:
     return results if results else []
 
 
-async def seed_initial_channels(client, channels_to_seed: list):
+async def seed_initial_channels(resolve, channels_to_seed: list):
     existing_channels = await get_all_channels()
     if existing_channels:
         print("База данных каналов уже наполнена. Пропускаю начальное наполнение.")
@@ -100,16 +100,7 @@ async def seed_initial_channels(client, channels_to_seed: list):
     print("База данных каналов пуста. Начинаю начальное наполнение...")
     for channel_input in channels_to_seed:
         try:
-            entity = await client.get_entity(channel_input)
-
-            channel_id = entity.id
-            if hasattr(entity, 'broadcast') and entity.broadcast:
-                if not str(channel_id).startswith('-100'):
-                    channel_id = int(f"-100{channel_id}")
-
-            username = getattr(entity, 'username', None)
-            title = entity.title
-
+            channel_id, username, title = await resolve(channel_input)
             await add_channel(channel_id=channel_id, username=username, title=title)
         except Exception as e:
             print(f"Не удалось добавить '{channel_input}': {e}")
@@ -122,14 +113,9 @@ async def delete_channel_by_id(db_id: int) -> bool:
     return True
 
 
-async def find_channel_by_identifier(identifier) -> tuple | None:
-    if isinstance(identifier, int):
-        query = "SELECT id, title FROM channels WHERE channel_id = ?"
-        return await execute_query(query, (identifier,), fetchone=True)
-    elif isinstance(identifier, str):
-        query = "SELECT id, title FROM channels WHERE username = ?"
-        return await execute_query(query, (identifier.replace('@', ''),), fetchone=True)
-    return None
+async def find_channel(channel_id: int) -> tuple | None:
+    query = "SELECT id, title FROM channels WHERE channel_id = ?"
+    return await execute_query(query, (channel_id,), fetchone=True)
 
 
 async def delete_project_by_id(db_id: int) -> bool:

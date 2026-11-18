@@ -1,6 +1,6 @@
 import unittest
 
-from core.text import quote, split_message
+from core.text import post_link, quote, split_message
 
 
 class QuoteTest(unittest.TestCase):
@@ -25,6 +25,14 @@ class SplitMessageTest(unittest.TestCase):
         self.assertTrue(all(len(message) <= 100 for message in messages))
         self.assertTrue(messages[0].startswith("Links:\n"))
         self.assertEqual("\n".join(messages).split("\n")[1:], lines)
+
+
+class PostLinkTest(unittest.TestCase):
+    def test_public_channel_link_uses_the_username(self):
+        self.assertEqual(post_link("news", 1234567890, 7), "https://t.me/news/7")
+
+    def test_private_channel_link_uses_the_id(self):
+        self.assertEqual(post_link(None, 1234567890, 7), "https://t.me/c/1234567890/7")
 
 
 if __name__ == "__main__":

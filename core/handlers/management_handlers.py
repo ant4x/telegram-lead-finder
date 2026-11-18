@@ -6,9 +6,9 @@ from aiogram.filters import Command
 
 from core.keyboards.delete_kb import get_delete_choice_keyboard, get_delete_confirmation_keyboard
 from core.settings import settings
-from core.utils.telethon_client import client as telethon_client
+from core.utils.telethon_client import resolve_channel
 from core.database.shillometr import add_channel, get_all_channels_with_details, delete_channel_by_id, \
-    find_channel_by_identifier
+    find_channel
 from core.database.shillometr import (add_project, get_all_projects,
                                       delete_project_by_id)
 from core.keyboards.project_management_kb import get_projects_for_deletion_keyboard
@@ -35,16 +35,7 @@ async def process_channel_identifier(message: Message, state: FSMContext):
     channel_input = message.text.strip()
 
     try:
-        entity = await telethon_client.get_entity(channel_input)
-
-        channel_id = entity.id
-        if hasattr(entity, 'broadcast') and entity.broadcast:
-            if not str(channel_id).startswith('-100'):
-                channel_id = int(f"-100{channel_id}")
-
-        username = getattr(entity, 'username', None)
-        title = entity.title
-
+        channel_id, username, title = await resolve_channel(channel_input)
         status = await add_channel(channel_id=channel_id, username=username, title=title)
 
         if status == 'added':
@@ -150,17 +141,12 @@ async def process_delete_by_name(message: Message, state: FSMContext):
     channel_input = message.text.strip()
 
     try:
-        print(f"Попытка найти сущность для '{channel_input}' через Telethon...")
-        entity = await telethon_client.get_entity(channel_input)
-
-        identifier_to_search = entity.username if entity.username else entity.id
-        print(f"Telethon нашел сущность. Идентификатор для поиска в БД: {identifier_to_search}")
-
-        result = await find_channel_by_identifier(identifier_to_search)
+        channel_id, _, telegram_title = await resolve_channel(channel_input)
+        result = await find_channel(channel_id)
 
         if not result:
             await message.answer(
-                f"ℹ️ Канал '<b>{escape(entity.title)}</b>' найден в Telegram, но его нет в вашем списке мониторинга. Попробуйте еще раз или введите /cancel.",
+                f"ℹ️ Канал '<b>{escape(telegram_title)}</b>' найден в Telegram, но его нет в вашем списке мониторинга. Попробуйте еще раз или введите /cancel.",
                 parse_mode="HTML")
             return
 

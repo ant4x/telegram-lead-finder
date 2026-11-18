@@ -18,7 +18,7 @@ from core.handlers.analyzer_handlers import (start_dialog_analyzer, process_proj
                                              process_days_selection, process_confirmation,
                                              process_report_details)
 from core.states.analyzer_states import AnalyzeStates
-from core.utils.telethon_client import client as telethon_client
+from core.utils.telethon_client import client as telethon_client, resolve_channel
 from core.database.shillometr import create_tables, seed_initial_channels
 from core.monitoring.listener import start_monitoring
 
@@ -100,7 +100,7 @@ async def main():
         await telethon_client.start()
         logging.info("Telethon клиент запущен.")
 
-        await seed_initial_channels(telethon_client, INITIAL_CHANNELS)
+        await seed_initial_channels(resolve_channel, INITIAL_CHANNELS)
 
         logging.info("Запускаю фоновый мониторинг...")
         start_monitoring(bot, telethon_client)

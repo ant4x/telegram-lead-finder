@@ -6,6 +6,7 @@ from telethon.errors import FloodWaitError, ChannelPrivateError
 from aiogram import Bot
 from dataclasses import dataclass, field
 from core.keyboards.report_details_kb import button_report_details
+from core.text import post_link
 
 BATCH_DELAY_SECONDS = 3
 CHANNEL_DELAY_SECONDS = 5
@@ -34,13 +35,7 @@ async def _scan_single_channel(client: TelegramClient, channel_username: str, ke
             if message.text and any(keyword.lower() in message.text.lower() for keyword in keywords):
                 result.found_mentions += 1
 
-                if entity.username:
-                    link = f"https://t.me/{entity.username}/{message.id}"
-                else:
-                    clean_id = str(entity.id).replace('-100', '')
-                    link = f"https://t.me/c/{clean_id}/{message.id}"
-
-                result.mention_links.append(link)
+                result.mention_links.append(post_link(entity.username, entity.id, message.id))
 
             if result.scanned_posts % 100 == 0:
                 await asyncio.sleep(BATCH_DELAY_SECONDS)

@@ -22,3 +22,10 @@ def split_message(header: str, lines: list[str], limit: int = MESSAGE_LIMIT) -> 
             current = f"{current}\n{line}"
     messages.append(current)
     return messages
+
+
+def post_link(username: str | None, channel_id: int, message_id: int) -> str:
+    """A link to a post. Private channels have no username: their links use the channel's own id, without -100."""
+    if username:
+        return f"https://t.me/{username}/{message_id}"
+    return f"https://t.me/c/{channel_id}/{message_id}"

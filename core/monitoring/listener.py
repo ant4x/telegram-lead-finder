@@ -6,7 +6,7 @@ from aiogram import Bot
 from core.database.shillometr import (get_all_projects, find_channel_db_id_by_telegram_id,
                                       save_post, log_mention)
 from core.settings import settings
-from core.text import quote
+from core.text import post_link, quote
 
 
 async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
@@ -31,11 +31,7 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
         if not found:
             return
 
-        if event.chat.username:
-            link = f"https://t.me/{event.chat.username}/{event.message.id}"
-        else:
-            clean_id = str(event.chat.id).replace('-100', '')
-            link = f"https://t.me/c/{clean_id}/{event.message.id}"
+        link = post_link(event.chat.username, event.chat.id, event.message.id)
 
         post_db_id = await save_post(
             channel_db_id=channel_db_id,
