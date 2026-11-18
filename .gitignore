@@ -7,7 +7,6 @@ venv/
 
 # Local config with the bot token and Telegram API keys
 .env
-input
 
 # Telethon session: full access to the Telegram account
 *.session
