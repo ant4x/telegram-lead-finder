@@ -58,36 +58,32 @@ async def main():
 
     await create_tables()
 
-    dp.message.register(start, Command(commands="start"))
-    dp.message.register(cancel_dialog, Command(commands="cancel"))
-
-    # Every other command, its dialog steps and its buttons are for admins only: the filter is checked on
-    # each message and button press, because anyone can send a bot any button data.
+    # aiogram hands a message to the first handler whose filters match, so the order matters: commands come
+    # first and work even in the middle of a dialog, then the dialog steps, then the fallbacks.
+    # Admin rights are checked on every message and button press, because anyone can send a bot any button data.
     admin = F.from_user.id.in_(set(settings.bots.admins_id))
 
+    dp.message.register(start, Command(commands="start"))
+    dp.message.register(cancel_dialog, Command(commands="cancel"))
+    dp.message.register(start_dialog_analyzer, Command(commands="analyze"), admin)
     dp.message.register(add_channel_start, Command(commands="add_channel"), admin)
-    dp.message.register(process_channel_identifier, AddChannelStates.waiting_for_identifier, F.text, admin)
-
-    dp.message.register(list_channels_command, Command(commands="list_channels"), admin)
-
     dp.message.register(delete_channel_start, Command(commands="del_channel"), admin)
+    dp.message.register(list_channels_command, Command(commands="list_channels"), admin)
+    dp.message.register(add_project_start, Command(commands="add_project"), admin)
+    dp.message.register(delete_project_start, Command(commands="del_project"), admin)
+    dp.message.register(list_projects_command, Command(commands="list_projects"), admin)
+    dp.message.register(admins_only, Command(*ADMIN_COMMANDS))
+
+    dp.message.register(process_channel_identifier, AddChannelStates.waiting_for_identifier, F.text, admin)
+    dp.message.register(process_delete_by_name, DeleteChannelStates.waiting_for_name, F.text, admin)
+    dp.message.register(process_project_add_name, ProjectManagementStates.waiting_for_add_name, F.text, admin)
+    dp.message.register(process_project_name, AnalyzeStates.waiting_for_project_name, F.text, admin)
+
     dp.callback_query.register(process_delete_choice, DeleteChannelStates.waiting_for_choice,
                                F.data.startswith("del_choice:"), admin)
-    dp.message.register(process_delete_by_name, DeleteChannelStates.waiting_for_name, F.text, admin)
     dp.callback_query.register(process_delete_from_list, F.data.startswith("del_channel"), admin)
     dp.callback_query.register(process_delete_confirmation, F.data.startswith("del_confirm:"), admin)
-
-    dp.message.register(add_project_start, Command(commands="add_project"), admin)
-    dp.message.register(process_project_add_name, ProjectManagementStates.waiting_for_add_name, F.text,
-                        admin)
-
-    dp.message.register(list_projects_command, Command(commands="list_projects"), admin)
-
-    dp.message.register(delete_project_start, Command(commands="del_project"), admin)
     dp.callback_query.register(process_project_deletion, F.data.startswith("del_project"), admin)
-
-    dp.message.register(start_dialog_analyzer, Command("analyze"), admin)
-    dp.message.register(process_project_name, AnalyzeStates.waiting_for_project_name, F.text, admin)
     dp.callback_query.register(process_days_selection, AnalyzeStates.waiting_for_days,
                                F.data.startswith("days_"), admin)
     dp.callback_query.register(process_confirmation, AnalyzeStates.waiting_for_confirmation,
@@ -96,8 +92,6 @@ async def main():
         process_report_details,
         F.data.in_({"report_channels", "report_posts", "report_all", "report_close"}), admin
     )
-
-    dp.message.register(admins_only, Command(*ADMIN_COMMANDS))
 
     # Anything else in a private chat outside a dialog: text, unknown commands, photos, stickers.
     # In a group the bot stays silent instead of answering every message.

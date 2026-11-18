@@ -204,7 +204,8 @@ async def list_projects_command(message: Message):
     await send_lines(message, "<b>Watched projects:</b>\n", lines)
 
 
-async def delete_project_start(message: Message):
+async def delete_project_start(message: Message, state: FSMContext):
+    await state.clear()
     projects = await get_all_projects()
     if not projects:
         await message.answer("🛑 The list is empty, nothing to remove.")
