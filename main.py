@@ -12,7 +12,7 @@ from core.handlers.management_handlers import (
     add_channel_start, process_channel_identifier, cancel_dialog, list_channels_command,
     delete_channel_start, process_delete_choice, process_delete_from_list,
     process_delete_by_name, process_delete_confirmation, add_project_start, process_project_add_name,
-    list_projects_command, delete_project_start, process_project_deletion
+    list_projects_command, delete_project_start, process_project_deletion, process_join, process_join_skip
 )
 from core.states.management_states import AddChannelStates, DeleteChannelStates
 from core.states.project_states import ProjectManagementStates
@@ -85,6 +85,8 @@ async def main():
     dp.callback_query.register(process_delete_from_list, F.data.startswith("del_channel"), admin)
     dp.callback_query.register(process_delete_confirmation, F.data.startswith("del_confirm:"), admin)
     dp.callback_query.register(process_project_deletion, F.data.startswith("del_project"), admin)
+    dp.callback_query.register(process_join, F.data.startswith("join:") | (F.data == "join_all"), admin)
+    dp.callback_query.register(process_join_skip, F.data == "join_skip", admin)
     dp.callback_query.register(process_days_selection, AnalyzeStates.waiting_for_days,
                                F.data.startswith("days_"))
     dp.callback_query.register(process_confirmation, AnalyzeStates.waiting_for_confirmation,

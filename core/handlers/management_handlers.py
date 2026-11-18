@@ -14,7 +14,8 @@ from core.keyboards.channel_management_kb import get_channels_for_deletion_keybo
 from core.states.management_states import AddChannelStates, DeleteChannelStates
 from core.states.project_states import ProjectManagementStates
 from core.utils.messages import send_lines
-from core.monitoring.joiner import queue as join_queue
+from core.monitoring.joiner import approve_awaiting, queue as join_queue
+from core.keyboards.join_kb import join_keyboard
 from core.text import INVALID_KEYWORD, valid_keyword
 
 
@@ -22,8 +23,8 @@ async def add_channel_start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("➡️ Let's add channels.\n\n"
                          "👉 Send a channel username, link or ID.\n"
-                         "📡 The reading account joins every channel you add, one a minute: "
-                         "Telegram sends new posts only to members.\n"
+                         "📡 Live alerts need the reading account to be in a channel. "
+                         "I'll ask before it joins one.\n"
                          "🛑 Send /cancel when you're done.")
     await state.set_state(AddChannelStates.waiting_for_identifier)
 
@@ -32,16 +33,18 @@ async def process_channel_identifier(message: Message, state: FSMContext):
     channel_input = message.text.strip()
 
     try:
-        channel_id, username, title = await resolve_channel(channel_input)
+        channel_id, username, title, member = await resolve_channel(channel_input)
         status = await add_channel(channel_id=channel_id, username=username, title=title)
-        join_queue.put_nowait(channel_id)
 
-        if status == 'added':
-            await message.answer(f"✅ Added <b>{escape(title)}</b>. The reading account will join it for live alerts.\n\n"
-                                 f"Send another one, or /cancel to finish.", parse_mode="HTML")
-        elif status == 'exists':
-            await message.answer(f"ℹ️ <b>{escape(title)}</b> is already on the list.\n\n"
-                                 f"Send another one, or /cancel to finish.", parse_mode="HTML")
+        result = f"✅ Added <b>{escape(title)}</b>." if status == 'added' else \
+            f"ℹ️ <b>{escape(title)}</b> is already on the list."
+        if member:
+            await message.answer(f"{result}\n\nSend another one, or /cancel to finish.", parse_mode="HTML")
+        else:
+            await message.answer(f"{result}\n\n📡 The reading account isn't in it yet, and Telegram sends new posts "
+                                 f"only to members. Join it with the account?\n\n"
+                                 f"You can also send another channel, or /cancel to finish.",
+                                 reply_markup=join_keyboard(f"join:{channel_id}"), parse_mode="HTML")
 
     except ValueError:
         await message.answer(f"❌ Couldn't find a channel for {channel_input}. Check it and try again, or send /cancel.")
@@ -134,7 +137,7 @@ async def process_delete_by_name(message: Message, state: FSMContext):
     channel_input = message.text.strip()
 
     try:
-        channel_id, _, telegram_title = await resolve_channel(channel_input)
+        channel_id, _, telegram_title, _ = await resolve_channel(channel_input)
         result = await find_channel(channel_id)
 
         if not result:
@@ -244,3 +247,24 @@ async def process_project_deletion(callback: CallbackQuery):
     except (ValueError, IndexError):
         await callback.answer("❌ Something went wrong with that button.", show_alert=True)
         await callback.message.edit_text("❌ Something went wrong. Please try again.")
+
+
+async def process_join(callback: CallbackQuery):
+    """An admin let the reading account join one channel, or every channel the startup message listed."""
+    if callback.data == "join_all":
+        count = approve_awaiting()
+        answer = f"✅ Joining {count} channels, one a minute. I'll tell you about each one." if count else \
+            "ℹ️ Nothing left to join."
+    else:
+        join_queue.put_nowait(int(callback.data.split(":")[1]))
+        answer = "✅ Joining it. I'll tell you when it's done."
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(answer)
+    await callback.answer()
+
+
+async def process_join_skip(callback: CallbackQuery):
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer("OK, not joining. No live alerts will come from those channels "
+                                  "until the reading account is in them. I'll ask again after a restart.")
+    await callback.answer()

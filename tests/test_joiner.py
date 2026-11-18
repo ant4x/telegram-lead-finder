@@ -3,11 +3,12 @@ import unittest
 
 from telethon.errors import ChannelsTooMuchError, FloodWaitError
 
+from core.monitoring import joiner
 from core.monitoring.joiner import JOIN_PAUSE_SECONDS, join_next
 
 
 class Fakes:
-    """Stands in for Telegram: join returns the given result or raises it; notes and pauses are recorded."""
+    """Stands in for Telegram: join returns the given title (None: already a member) or raises; notes and pauses are recorded."""
 
     def __init__(self, result):
         self.result = result
@@ -31,15 +32,17 @@ class Fakes:
 
 
 class JoinNextTest(unittest.IsolatedAsyncioTestCase):
-    async def test_pauses_after_joining(self):
-        fakes = Fakes(True)
+    async def test_tells_the_admins_and_pauses_after_joining(self):
+        fakes = Fakes("Daily News")
         self.assertTrue(await fakes.step())
-        self.assertEqual((fakes.pauses, fakes.notes), ([JOIN_PAUSE_SECONDS], []))
+        self.assertEqual(fakes.pauses, [JOIN_PAUSE_SECONDS])
+        self.assertEqual(len(fakes.notes), 1)
+        self.assertIn("joined Daily News", fakes.notes[0])
 
-    async def test_does_not_pause_when_already_a_member(self):
-        fakes = Fakes(False)
+    async def test_stays_quiet_when_already_a_member(self):
+        fakes = Fakes(None)
         self.assertTrue(await fakes.step())
-        self.assertEqual(fakes.pauses, [])
+        self.assertEqual((fakes.pauses, fakes.notes), ([], []))
 
     async def test_waits_out_a_flood_wait_and_retries_the_channel(self):
         fakes = Fakes(FloodWaitError(request=None, capture=120))
@@ -61,6 +64,25 @@ class JoinNextTest(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(await fakes.step())
         self.assertEqual((fakes.pauses, fakes.notes), ([], []))
         self.assertTrue(fakes.pending.empty())
+
+
+class ApprovalTest(unittest.TestCase):
+    """The account joins only channels an admin approved: approval moves them to the join queue."""
+
+    def setUp(self):
+        joiner.awaiting.clear()
+        while not joiner.queue.empty():
+            joiner.queue.get_nowait()
+
+    def test_approval_queues_every_waiting_channel_in_order(self):
+        joiner.awaiting.extend(["@first", "@second"])
+        self.assertEqual(joiner.approve_awaiting(), 2)
+        self.assertEqual([joiner.queue.get_nowait(), joiner.queue.get_nowait()], ["@first", "@second"])
+        self.assertEqual(joiner.awaiting, [])
+
+    def test_nothing_is_queued_before_approval(self):
+        joiner.awaiting.append("@first")
+        self.assertTrue(joiner.queue.empty())
 
 
 if __name__ == "__main__":

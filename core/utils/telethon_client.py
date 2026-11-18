@@ -10,12 +10,13 @@ client = TelegramClient(
 )
 
 
-async def resolve_channel(channel_input) -> tuple[int, str | None, str]:
+async def resolve_channel(channel_input) -> tuple[int, str | None, str, bool]:
     """
-    A channel or a group by username, link or id: its id in the form updates carry (-100...), username and title.
+    A channel or a group by username, link or id: its id in the form updates carry (-100...), username, title
+    and whether the reading account is a member.
     Raises ValueError for anything that is not a channel or a group.
     """
     entity = await client.get_entity(channel_input)
     if not isinstance(entity, Channel):
         raise ValueError(f"{channel_input} is not a channel")
-    return utils.get_peer_id(entity), entity.username, entity.title
+    return utils.get_peer_id(entity), entity.username, entity.title, not entity.left

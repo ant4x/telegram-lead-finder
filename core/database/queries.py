@@ -92,7 +92,7 @@ async def seed_initial_channels(resolve, channels_to_seed: list):
 
     for channel_input in channels_to_seed:
         try:
-            channel_id, username, title = await resolve(channel_input)
+            channel_id, username, title, _ = await resolve(channel_input)
             await add_channel(channel_id=channel_id, username=username, title=title)
         except Exception as e:
             logging.warning(f"Seed channel {channel_input} was not added: {e}")
