@@ -4,14 +4,14 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 button_report_details = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="📄 Каналы", callback_data="report_channels"),
-            InlineKeyboardButton(text="🔗 Посты", callback_data="report_posts"),
+            InlineKeyboardButton(text="📄 Channels", callback_data="report_channels"),
+            InlineKeyboardButton(text="🔗 Posts", callback_data="report_posts"),
         ],
         [
-            InlineKeyboardButton(text="📂 Показать всё", callback_data="report_all"),
+            InlineKeyboardButton(text="📂 Show all", callback_data="report_all"),
         ],
         [
-            InlineKeyboardButton(text="☑️ Закрыть", callback_data="report_close"),
+            InlineKeyboardButton(text="☑️ Close", callback_data="report_close"),
         ]
     ]
 )

@@ -33,14 +33,14 @@ ADMIN_COMMANDS = ("analyze", "add_channel", "del_channel", "list_channels", "add
 
 async def set_command(bot: Bot):
     commands = [
-        BotCommand(command="/start", description="Начать работу с ботом"),
-        BotCommand(command="/analyze", description="📊 Анализ упоминаний проекта"),
-        BotCommand(command="/add_channel", description="➕ [АДМИН] Добавить канал для мониторинга"),
-        BotCommand(command="/del_channel", description="➖ [АДМИН] Удалить канал"),
-        BotCommand(command="/list_channels", description="📋 [АДМИН] Список каналов"),
-        BotCommand(command="/add_project", description="🧐 [АДМИН] Добавить проект в мониторинг"),
-        BotCommand(command="/del_project", description="😒 [АДМИН] Удалить проект из мониторинга"),
-        BotCommand(command="/list_projects", description="📋 [АДМИН] Список проектов для мониторинга")
+        BotCommand(command="/start", description="Show the commands"),
+        BotCommand(command="/analyze", description="📊 Search past posts for a project (admin)"),
+        BotCommand(command="/add_channel", description="➕ Add a channel (admin)"),
+        BotCommand(command="/del_channel", description="➖ Remove a channel (admin)"),
+        BotCommand(command="/list_channels", description="📋 List watched channels (admin)"),
+        BotCommand(command="/add_project", description="🧐 Watch a project (admin)"),
+        BotCommand(command="/del_project", description="😒 Stop watching a project (admin)"),
+        BotCommand(command="/list_projects", description="📋 List watched projects (admin)")
     ]
     await bot.set_my_commands(commands)
 

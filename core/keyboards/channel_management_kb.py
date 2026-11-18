@@ -13,7 +13,7 @@ def get_channels_for_deletion_keyboard(channels: list) -> InlineKeyboardMarkup:
 
     builder.row(
         InlineKeyboardButton(
-            text="☑️ Закончить",
+            text="☑️ Done",
             callback_data="del_channel_finish"
         )
     )

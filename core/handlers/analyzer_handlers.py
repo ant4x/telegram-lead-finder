@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import re
 from html import escape
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
@@ -30,29 +29,29 @@ async def run_scan(**kwargs):
 
 async def start_dialog_analyzer(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("1️⃣ Хорошо, начинаем анализ. Какой проект будем искать?")
+    await message.answer("1️⃣ Which project should I look for? Add * at the end to match any word that starts with it.")
     await state.set_state(AnalyzeStates.waiting_for_project_name)
 
 
 async def process_project_name(message: Message, state: FSMContext):
     await state.update_data(project_name=message.text)
-    await message.answer("2️⃣ Отлично. Теперь выберите период для анализа:",
+    await message.answer("2️⃣ How far back should I look?",
         reply_markup=button_days_selection)
     await state.set_state(AnalyzeStates.waiting_for_days)
 
 
 async def process_days_selection(callback: CallbackQuery, state: FSMContext):
-    days = int(re.findall(r'\d+', callback.data)[0])
+    days = int(callback.data.removeprefix('days_'))
 
     await state.update_data(days=days)
     user_data = await state.get_data()
     project_name = user_data.get('project_name')
 
     await callback.message.edit_text(
-        f"3️⃣ Итак, подведем итог:\n\n"
-        f"Ищем упоминания проекта: <b>{escape(project_name)}</b>\n"
-        f"Период анализа: последние <b>{days}</b> дней\n\n"
-        f"Всё верно?",
+        f"3️⃣ Quick check:\n\n"
+        f"Project: <b>{escape(project_name)}</b>\n"
+        f"Period: last <b>{days}</b> days\n\n"
+        f"Shall I start?",
         reply_markup=button_analyze_confirm,
         parse_mode="HTML"
     )
@@ -64,7 +63,7 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
     await callback.message.edit_reply_markup(reply_markup=None)
 
     if callback.data == "analyze_cancel":
-        await callback.message.edit_text("🚫 Анализ отменен.")
+        await callback.message.edit_text("🚫 Canceled.")
     else:
         user_data = await state.get_data()
         project_name = user_data.get('project_name')
@@ -72,12 +71,12 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
         channels_from_db = await get_all_channels()
 
         if not channels_from_db:
-            await callback.message.edit_text("🚫 В базе данных нет каналов для анализа. "
-                                             "Сначала добавьте их с помощью команды /add_channel.")
+            await callback.message.edit_text("🚫 There are no channels to search yet. "
+                                             "Add some with /add_channel first.")
         # No await between this check and create_task, so two presses cannot both start a scan.
         elif scan_task and not scan_task.done():
-            await callback.message.edit_text("⚠️ В данный момент уже выполняется другой анализ. "
-                                             "Пожалуйста, дождитесь его завершения и попробуйте снова.")
+            await callback.message.edit_text("⚠️ Another search is running. "
+                                             "Please wait for it to finish and try again.")
         else:
             scan_task = asyncio.create_task(run_scan(
                 client=telethon_client,
@@ -89,8 +88,8 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
                 days=days
             ))
             await callback.message.edit_text(
-                f"✅ Отлично! Запускаю анализ проекта '<b>{escape(project_name)}</b>' за последние <b>{days}</b> дней.\n\n"
-                f"Это может занять несколько минут. Результаты придут отдельным сообщением.",
+                f"✅ Searching the last <b>{days}</b> days for <b>{escape(project_name)}</b>.\n\n"
+                f"This can take a few minutes. I'll send the results in a new message.",
                 parse_mode="HTML"
             )
 
@@ -100,8 +99,8 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
 
 REPORT_ANSWERS = {
     "report_channels": None,
-    "report_posts": "✅ Ссылки отправлены!",
-    "report_all": "✅ Полная информация отправлена!",
+    "report_posts": "✅ Links sent",
+    "report_all": "✅ Sent",
 }
 
 
@@ -113,14 +112,14 @@ async def process_report_details(callback: CallbackQuery):
 
     if not user_results:
         await callback.message.edit_text(
-            "🤷‍♂️ К сожалению, результаты этого сканирования уже недоступны. Запустите новый анализ.")
+            "🤷‍♂️ These results are no longer available. Run /analyze again.")
         await callback.answer()
         return
 
     if action == "report_close":
         await callback.message.edit_text(
-            "Меню детализации закрыто.\n\n"
-            "Чтобы начать новый анализ, используйте команду /analyze."
+            "Closed.\n\n"
+            "Send /analyze to start a new search."
         )
 
         if user_id in SCAN_RESULTS_CACHE:
@@ -129,7 +128,7 @@ async def process_report_details(callback: CallbackQuery):
         return
 
     if action in ("report_channels", "report_all"):
-        await send_lines(callback.message, "<b>📄 Каналы с упоминаниями:</b>", user_results['channels'])
+        await send_lines(callback.message, "<b>📄 Channels with mentions:</b>", user_results['channels'])
     if action in ("report_posts", "report_all"):
-        await send_lines(callback.message, "<b>📄 Ссылки на посты с упоминаниями:</b>", user_results['links'])
+        await send_lines(callback.message, "<b>🔗 Posts with mentions:</b>", user_results['links'])
     await callback.answer(text=REPORT_ANSWERS[action])

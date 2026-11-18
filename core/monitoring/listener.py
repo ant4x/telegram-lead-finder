@@ -45,11 +45,11 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
 
         projects_str = ", ".join(escape(project_name.capitalize()) for _, project_name in found)
         notification_text = (
-            f"📢 <b>Найдено упоминание!</b>\n\n"
-            f"<b>Проект(ы):</b> {projects_str}\n"
-            f"<b>Канал:</b> {escape(event.chat.title)}\n\n"
-            f"<i>«{quote(message_text)}»</i>\n\n"
-            f"<a href='{link}'><b>Перейти к сообщению</b></a>"
+            f"📢 <b>New mention</b>\n\n"
+            f"<b>Project:</b> {projects_str}\n"
+            f"<b>Channel:</b> {escape(event.chat.title)}\n\n"
+            f"<i>“{quote(message_text)}”</i>\n\n"
+            f"<a href='{link}'><b>Open the post</b></a>"
         )
 
         for admin_id in settings.bots.admins_id:

@@ -64,7 +64,7 @@ async def start_full_scan(
         days: int = 7
 ):
     await bot.send_message(user_id,
-                           f"▶️ Начинаю полный анализ {len(channels)} каналов. Это может занять некоторое время...")
+                           f"▶️ Searching {len(channels)} channels. This can take a while.")
 
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
@@ -95,14 +95,14 @@ async def start_full_scan(
     mention_percentage = (mention_channels_count / total_channels_count * 100) if total_channels_count > 0 else 0
 
     report_text = (
-        f"🏁 <b>Анализ завершен!</b> 🏁\n\n"
-        f"<b>Период:</b> последние {days} дней\n"
-        f"<b>Ключевые слова:</b> {escape(', '.join(keywords))}\n\n"
-        f"<b><u>Сводная статистика:</u></b>\n"
-        f"▫️ Проверено каналов: {successful_scans} из {total_channels_count} (неудачно: {failed_scans})\n"
-        f"▫️ Всего просмотрено постов: {total_posts_scanned}\n"
-        f"▫️ <b>Всего найдено упоминаний: {total_mentions_found}</b>\n"
-        f"▫️ Упоминания найдены в <b>{mention_channels_count}</b> каналах ({mention_percentage:.2f}%)"
+        f"🏁 <b>Done</b>\n\n"
+        f"<b>Period:</b> last {days} days\n"
+        f"<b>Searched for:</b> {escape(', '.join(keywords))}\n\n"
+        f"<b><u>Summary</u></b>\n"
+        f"▫️ Channels searched: {successful_scans} of {total_channels_count} (couldn't open: {failed_scans})\n"
+        f"▫️ Posts checked: {total_posts_scanned}\n"
+        f"▫️ <b>Mentions found: {total_mentions_found}</b>\n"
+        f"▫️ Channels with mentions: <b>{mention_channels_count}</b> ({mention_percentage:.1f}%)"
     )
 
     await bot.send_message(user_id, report_text, parse_mode="HTML")
@@ -116,6 +116,6 @@ async def start_full_scan(
         }
         await bot.send_message(
             user_id,
-            "Хотите посмотреть детали?",
+            "Want the details?",
             reply_markup=button_report_details
         )

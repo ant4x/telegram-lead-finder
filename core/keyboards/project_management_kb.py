@@ -13,7 +13,7 @@ def get_projects_for_deletion_keyboard(projects: list) -> InlineKeyboardMarkup:
         )
     builder.row(
         InlineKeyboardButton(
-            text="☑️ Закончить",
+            text="☑️ Done",
             callback_data="del_project_finish"
         )
     )
