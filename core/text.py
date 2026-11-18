@@ -1,7 +1,16 @@
 """Text for bot messages. Telegram HTML needs <, > and & escaped, and one message holds at most 4096 characters."""
+import re
 from html import escape
 
 MESSAGE_LIMIT = 4096
+
+
+def mentions(text: str, keyword: str) -> bool:
+    """
+    Whether the text names the keyword as a whole word or phrase, in any case: "ton" is found in "TON is up",
+    not in "button". Inflected forms are other words, so "тон" does not find "тона".
+    """
+    return re.search(rf"(?<!\w){re.escape(keyword)}(?!\w)", text, re.IGNORECASE) is not None
 
 
 def quote(text: str, limit: int = 200) -> str:

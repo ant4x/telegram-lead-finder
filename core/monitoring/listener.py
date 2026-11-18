@@ -6,7 +6,7 @@ from aiogram import Bot
 from core.database.shillometr import (get_all_projects, find_channel_db_id_by_telegram_id,
                                       save_post, log_mention)
 from core.settings import settings
-from core.text import post_link, quote
+from core.text import mentions, post_link, quote
 
 
 async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
@@ -27,7 +27,7 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
             return
 
         found = [(project_id, project_name) for project_id, project_name in await get_all_projects()
-                 if project_name.lower() in message_text.lower()]
+                 if mentions(message_text, project_name)]
         if not found:
             return
 

@@ -6,11 +6,10 @@ from telethon.errors import FloodWaitError, ChannelPrivateError
 from aiogram import Bot
 from dataclasses import dataclass, field
 from core.keyboards.report_details_kb import button_report_details
-from core.text import post_link
+from core.text import mentions, post_link
 
 BATCH_DELAY_SECONDS = 3
 CHANNEL_DELAY_SECONDS = 5
-FLOOD_WAIT_THRESHOLD = 60
 
 
 @dataclass
@@ -27,14 +26,12 @@ async def _scan_single_channel(client: TelegramClient, channel_username: str, ke
         entity = await client.get_entity(channel_username)
 
         async for message in client.iter_messages(entity, limit=None):
-            result.scanned_posts += 1
-
             if message.date < start_date:
                 break
+            result.scanned_posts += 1
 
-            if message.text and any(keyword.lower() in message.text.lower() for keyword in keywords):
+            if message.text and any(mentions(message.text, keyword) for keyword in keywords):
                 result.found_mentions += 1
-
                 result.mention_links.append(post_link(entity.username, entity.id, message.id))
 
             if result.scanned_posts % 100 == 0:
@@ -48,10 +45,9 @@ async def _scan_single_channel(client: TelegramClient, channel_username: str, ke
         print(f"❌ Не удалось получить доступ к каналу {channel_username}: {e}")
         return None
     except FloodWaitError as e:
-        print(f"❗️ FloodWaitError в канале {channel_username}: ждем {e.seconds} секунд.")
-        if e.seconds > FLOOD_WAIT_THRESHOLD:
-            return None
-        await asyncio.sleep(e.seconds)
+        # Telethon itself waits out limits of up to a minute (flood_sleep_threshold) and repeats the request,
+        # so a wait that reaches this point is longer: the channel is skipped.
+        print(f"❗️ FloodWaitError в канале {channel_username}: Telegram просит подождать {e.seconds} секунд, канал пропущен.")
         return None
     except Exception as e:
         print(f"❌ Неизвестная ошибка при сканировании {channel_username}: {e}")
