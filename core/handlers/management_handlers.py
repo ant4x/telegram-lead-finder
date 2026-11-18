@@ -5,15 +5,16 @@ from aiogram.types import Message, CallbackQuery
 
 from core.keyboards.delete_kb import get_delete_choice_keyboard, get_delete_confirmation_keyboard
 from core.utils.telethon_client import resolve_channel
-from core.database.shillometr import add_channel, get_all_channels_with_details, delete_channel_by_id, \
+from core.database.queries import add_channel, get_all_channels_with_details, delete_channel_by_id, \
     find_channel
-from core.database.shillometr import (add_project, get_all_projects,
+from core.database.queries import (add_project, get_all_projects,
                                       delete_project_by_id)
 from core.keyboards.project_management_kb import get_projects_for_deletion_keyboard
 from core.keyboards.channel_management_kb import get_channels_for_deletion_keyboard
 from core.states.management_states import AddChannelStates, DeleteChannelStates
 from core.states.project_states import ProjectManagementStates
 from core.utils.messages import send_lines
+from core.text import INVALID_KEYWORD, valid_keyword
 
 
 async def add_channel_start(message: Message, state: FSMContext):
@@ -177,8 +178,8 @@ async def add_project_start(message: Message, state: FSMContext):
 async def process_project_add_name(message: Message, state: FSMContext):
     project_name = message.text.strip()
 
-    if not (1 < len(project_name) < 100):
-        await message.answer("⚠️ Use 2 to 99 characters. Try again, or send /cancel.")
+    if not valid_keyword(project_name):
+        await message.answer(INVALID_KEYWORD)
         return
 
     status = await add_project(project_name)

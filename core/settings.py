@@ -1,12 +1,11 @@
 from environs import Env
 from dataclasses import dataclass, field
-from typing import List
 
 
 @dataclass
 class Bots:
     bot_token: str
-    admins_id: List[int] = field(default_factory=list)
+    admins_id: list[int] = field(default_factory=list)
 
 
 @dataclass

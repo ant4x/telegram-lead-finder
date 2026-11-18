@@ -9,8 +9,9 @@ from core.utils.telethon_client import client as telethon_client
 from core.states.analyzer_states import AnalyzeStates
 from core.keyboards.confirmation_kb import button_analyze_confirm
 from core.keyboards.days_selection_kb import button_days_selection
-from core.database.shillometr import get_all_channels
+from core.database.queries import get_all_channels
 from core.utils.messages import send_lines
+from core.text import INVALID_KEYWORD, valid_keyword
 
 
 SCAN_RESULTS_CACHE = {}
@@ -34,9 +35,13 @@ async def start_dialog_analyzer(message: Message, state: FSMContext):
 
 
 async def process_project_name(message: Message, state: FSMContext):
-    await state.update_data(project_name=message.text)
-    await message.answer("2️⃣ How far back should I look?",
-        reply_markup=button_days_selection)
+    project_name = message.text.strip()
+    if not valid_keyword(project_name):
+        await message.answer(INVALID_KEYWORD)
+        return
+
+    await state.update_data(project_name=project_name)
+    await message.answer("2️⃣ How far back should I look?", reply_markup=button_days_selection)
     await state.set_state(AnalyzeStates.waiting_for_days)
 
 
@@ -57,6 +62,7 @@ async def process_days_selection(callback: CallbackQuery, state: FSMContext):
     )
     await state.set_state(AnalyzeStates.waiting_for_confirmation)
     await callback.answer()
+
 
 async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: Bot):
     global scan_task

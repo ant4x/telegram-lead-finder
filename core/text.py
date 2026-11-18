@@ -1,8 +1,17 @@
-"""Text for bot messages. Telegram HTML needs <, > and & escaped, and one message holds at most 4096 characters."""
+"""
+Text helpers without Telegram: keyword matching, post links and message formatting.
+Telegram HTML needs <, > and & escaped, and one message holds at most 4096 characters.
+"""
 import re
 from html import escape
 
 MESSAGE_LIMIT = 4096
+INVALID_KEYWORD = "⚠️ Use 2 to 99 characters, with at least one letter or digit. Try again, or send /cancel."
+
+
+def valid_keyword(keyword: str) -> bool:
+    """2 to 99 characters with at least one letter or digit: a name of stars or punctuation would match every post."""
+    return 1 < len(keyword) < 100 and re.search(r"\w", keyword) is not None
 
 
 def mentions(text: str, keyword: str) -> bool:

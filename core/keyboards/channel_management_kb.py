@@ -6,7 +6,7 @@ def get_channels_for_deletion_keyboard(channels: list) -> InlineKeyboardMarkup:
     for db_id, title, identifier in channels:
         builder.row(
             InlineKeyboardButton(
-                text=f"❌ {title[:30]}...",
+                text=f"❌ {title if len(title) <= 30 else title[:30] + '...'}",
                 callback_data=f"del_channel:{db_id}"
             )
         )

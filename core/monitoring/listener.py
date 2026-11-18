@@ -3,7 +3,7 @@ from html import escape
 from telethon import events
 from telethon.client import TelegramClient
 from aiogram import Bot
-from core.database.shillometr import (get_all_projects, find_channel_db_id_by_telegram_id,
+from core.database.queries import (get_all_projects, find_channel_db_id_by_telegram_id,
                                       save_post, log_mention)
 from core.settings import settings
 from core.text import mentions, post_link, quote
@@ -15,10 +15,7 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
     from the database for every post, so the ones added or deleted by admins apply without a restart.
     """
     try:
-        if event.message.reply_to_msg_id or event.message.fwd_from:
-            return
-
-        message_text = event.message.text or ""
+        message_text = event.message.raw_text or ""
         if not message_text:
             return
 
@@ -31,14 +28,15 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
         if not found:
             return
 
-        link = post_link(event.chat.username, event.chat.id, event.message.id)
+        chat = await event.get_chat()
+        link = post_link(chat.username, chat.id, event.message.id)
 
         post_db_id = await save_post(
             channel_db_id=channel_db_id,
             message_id=event.message.id,
             link=link,
             post_date=event.message.date,
-            text=event.message.text
+            text=message_text
         )
         for project_id, _ in found:
             await log_mention(post_db_id=post_db_id, project_db_id=project_id)
@@ -47,7 +45,7 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
         notification_text = (
             f"📢 <b>New mention</b>\n\n"
             f"<b>Project:</b> {projects_str}\n"
-            f"<b>Channel:</b> {escape(event.chat.title)}\n\n"
+            f"<b>Channel:</b> {escape(chat.title)}\n\n"
             f"<i>“{quote(message_text)}”</i>\n\n"
             f"<a href='{link}'><b>Open the post</b></a>"
         )

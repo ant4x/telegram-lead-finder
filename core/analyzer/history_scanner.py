@@ -20,37 +20,37 @@ class ScanResult:
     mention_links: list[str] = field(default_factory=list)
 
 
-async def _scan_single_channel(client: TelegramClient, channel_username: str, keywords: list[str],
+async def _scan_single_channel(client: TelegramClient, channel: str, keywords: list[str],
                                start_date: datetime) -> ScanResult | None:
     try:
         result = ScanResult()
-        entity = await client.get_entity(channel_username)
+        entity = await client.get_entity(channel)
 
         async for message in client.iter_messages(entity, limit=None):
             if message.date < start_date:
                 break
             result.scanned_posts += 1
 
-            if message.text and any(mentions(message.text, keyword) for keyword in keywords):
+            if message.raw_text and any(mentions(message.raw_text, keyword) for keyword in keywords):
                 result.found_mentions += 1
                 result.mention_links.append(post_link(entity.username, entity.id, message.id))
 
             if result.scanned_posts % 100 == 0:
                 await asyncio.sleep(BATCH_DELAY_SECONDS)
 
-        logging.info(f"{channel_username}: {result.scanned_posts} posts in the period, {result.found_mentions} mentions")
+        logging.info(f"{channel}: {result.scanned_posts} posts in the period, {result.found_mentions} mentions")
         return result
 
     except (ValueError, ChannelPrivateError) as e:
-        logging.warning(f"{channel_username} is not accessible: {e}")
+        logging.warning(f"{channel} is not accessible: {e}")
         return None
     except FloodWaitError as e:
         # Telethon itself waits out limits of up to a minute (flood_sleep_threshold) and repeats the request,
         # so a wait that reaches this point is longer: the channel is skipped.
-        logging.warning(f"{channel_username} skipped: Telegram asks to wait {e.seconds} seconds")
+        logging.warning(f"{channel} skipped: Telegram asks to wait {e.seconds} seconds")
         return None
     except Exception:
-        logging.exception(f"{channel_username} failed")
+        logging.exception(f"{channel} failed")
         return None
 
 

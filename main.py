@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
+from aiogram.enums import ChatType
 from aiogram.types import BotCommand
 from aiogram.filters.state import StateFilter
 from core.settings import settings
@@ -20,7 +21,7 @@ from core.handlers.analyzer_handlers import (start_dialog_analyzer, process_proj
                                              process_report_details)
 from core.states.analyzer_states import AnalyzeStates
 from core.utils.telethon_client import client as telethon_client, resolve_channel
-from core.database.shillometr import create_tables, seed_initial_channels
+from core.database.queries import create_tables, seed_initial_channels
 from core.monitoring.listener import start_monitoring
 
 
@@ -31,7 +32,7 @@ ADMIN_COMMANDS = ("analyze", "add_channel", "del_channel", "list_channels", "add
                   "list_projects")
 
 
-async def set_command(bot: Bot):
+async def set_commands(bot: Bot):
     commands = [
         BotCommand(command="/start", description="Show the commands"),
         BotCommand(command="/analyze", description="📊 Search past posts for a project (admin)"),
@@ -53,7 +54,7 @@ async def main():
 
     bot = Bot(settings.bots.bot_token)
     dp = Dispatcher()
-    await set_command(bot)
+    await set_commands(bot)
 
     await create_tables()
 
@@ -65,19 +66,20 @@ async def main():
     admin = F.from_user.id.in_(set(settings.bots.admins_id))
 
     dp.message.register(add_channel_start, Command(commands="add_channel"), admin)
-    dp.message.register(process_channel_identifier, AddChannelStates.waiting_for_identifier, admin)
+    dp.message.register(process_channel_identifier, AddChannelStates.waiting_for_identifier, F.text, admin)
 
     dp.message.register(list_channels_command, Command(commands="list_channels"), admin)
 
     dp.message.register(delete_channel_start, Command(commands="del_channel"), admin)
     dp.callback_query.register(process_delete_choice, DeleteChannelStates.waiting_for_choice,
                                F.data.startswith("del_choice:"), admin)
-    dp.message.register(process_delete_by_name, DeleteChannelStates.waiting_for_name, admin)
+    dp.message.register(process_delete_by_name, DeleteChannelStates.waiting_for_name, F.text, admin)
     dp.callback_query.register(process_delete_from_list, F.data.startswith("del_channel"), admin)
     dp.callback_query.register(process_delete_confirmation, F.data.startswith("del_confirm:"), admin)
 
     dp.message.register(add_project_start, Command(commands="add_project"), admin)
-    dp.message.register(process_project_add_name, ProjectManagementStates.waiting_for_add_name, admin)
+    dp.message.register(process_project_add_name, ProjectManagementStates.waiting_for_add_name, F.text,
+                        admin)
 
     dp.message.register(list_projects_command, Command(commands="list_projects"), admin)
 
@@ -85,7 +87,7 @@ async def main():
     dp.callback_query.register(process_project_deletion, F.data.startswith("del_project"), admin)
 
     dp.message.register(start_dialog_analyzer, Command("analyze"), admin)
-    dp.message.register(process_project_name, AnalyzeStates.waiting_for_project_name, admin)
+    dp.message.register(process_project_name, AnalyzeStates.waiting_for_project_name, F.text, admin)
     dp.callback_query.register(process_days_selection, AnalyzeStates.waiting_for_days,
                                F.data.startswith("days_"), admin)
     dp.callback_query.register(process_confirmation, AnalyzeStates.waiting_for_confirmation,
@@ -97,8 +99,9 @@ async def main():
 
     dp.message.register(admins_only, Command(*ADMIN_COMMANDS))
 
-    # Anything else outside a dialog: text, unknown commands, photos, stickers.
-    dp.message.register(filter_text, StateFilter(None))
+    # Anything else in a private chat outside a dialog: text, unknown commands, photos, stickers.
+    # In a group the bot stays silent instead of answering every message.
+    dp.message.register(filter_text, StateFilter(None), F.chat.type == ChatType.PRIVATE)
 
     try:
         await telethon_client.start()

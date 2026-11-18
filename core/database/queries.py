@@ -1,12 +1,12 @@
 import logging
 
 import aiosqlite
-from typing import List, Tuple, Any, Union
+from typing import Any
 
 from core.database.schema import SCHEMA
 
 
-DB_NAME = "shillometr.db"
+DB_NAME = "shillometer.db"
 
 
 async def execute_query(query, params=None, commit=True, fetchall=False, fetchone=False) -> Any:
@@ -42,7 +42,7 @@ async def add_channel(channel_id: int, username: str, title: str) -> str:
     return 'added'
 
 
-async def get_all_channels() -> List[Union[str, int]]:
+async def get_all_channels() -> list[str | int]:
     query = "SELECT username, channel_id FROM channels"
     results = await execute_query(query, fetchall=True)
     if not results:
@@ -64,7 +64,7 @@ async def find_channel_db_id_by_telegram_id(telegram_id: int) -> int | None:
     return result[0] if result else None
 
 
-async def get_all_channels_with_details() -> List[Tuple[int, str, str]]:
+async def get_all_channels_with_details() -> list[tuple[int, str, str]]:
     query = "SELECT id, title, CASE WHEN username IS NOT NULL THEN ('@' || username) ELSE CAST(channel_id AS TEXT) END FROM channels ORDER BY title"
     return await execute_query(query, fetchall=True)
 
@@ -79,7 +79,7 @@ async def add_project(name: str) -> str:
     return 'added'
 
 
-async def get_all_projects() -> List[Tuple[int, str]]:
+async def get_all_projects() -> list[tuple[int, str]]:
     query = "SELECT id, name FROM projects ORDER BY name"
     results = await execute_query(query, fetchall=True)
     return results if results else []
@@ -125,6 +125,7 @@ async def save_post(channel_db_id: int, message_id: int, link: str, post_date, t
             await cursor.execute(query, (channel_db_id, message_id, link, post_date, text))
             await connection.commit()
             return cursor.lastrowid
+
 
 async def log_mention(post_db_id: int, project_db_id: int):
     query = "INSERT INTO mentions (post_db_id, project_db_id) VALUES (?, ?)"
