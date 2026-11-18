@@ -20,6 +20,16 @@ class MentionsTest(unittest.TestCase):
         self.assertTrue(mentions("Тон растёт", "тон"))
         self.assertFalse(mentions("тонна угля", "тон"))
 
+    def test_other_forms_of_a_word_are_other_words(self):
+        self.assertFalse(mentions("Ищу разработчика сайта", "сайт"))
+
+    def test_star_finds_every_word_that_starts_with_the_keyword(self):
+        self.assertTrue(mentions("Ищу разработчика сайта", "сайт*"))
+        self.assertTrue(mentions("Нужен сайт для салона", "сайт*"))
+
+    def test_star_still_needs_the_start_of_a_word(self):
+        self.assertFalse(mentions("посайтовая оплата", "сайт*"))
+
     def test_keyword_with_symbols_is_matched_literally(self):
         self.assertTrue(mentions("I like C++ a lot", "c++"))
         self.assertFalse(mentions("I like Cpp a lot", "c++"))

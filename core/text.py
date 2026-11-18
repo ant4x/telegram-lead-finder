@@ -8,9 +8,12 @@ MESSAGE_LIMIT = 4096
 def mentions(text: str, keyword: str) -> bool:
     """
     Whether the text names the keyword as a whole word or phrase, in any case: "ton" is found in "TON is up",
-    not in "button". Inflected forms are other words, so "тон" does not find "тона".
+    not in "button". Inflected forms are other words, so "сайт" does not find "сайта". A keyword ending in *
+    finds every word that starts with it: "сайт*" finds "сайт", "сайта" and "сайтом".
     """
-    return re.search(rf"(?<!\w){re.escape(keyword)}(?!\w)", text, re.IGNORECASE) is not None
+    whole_word = not keyword.endswith("*")
+    pattern = rf"(?<!\w){re.escape(keyword.rstrip('*'))}" + (r"(?!\w)" if whole_word else "")
+    return re.search(pattern, text, re.IGNORECASE) is not None
 
 
 def quote(text: str, limit: int = 200) -> str:
