@@ -2,6 +2,8 @@ from html import escape
 
 from aiogram.types import Message
 
+from core.limits import SEARCHES_PER_DAY
+
 
 async def start(message: Message):
     first_name = message.from_user.first_name or "there"
@@ -11,9 +13,9 @@ async def start(message: Message):
         f"📡 <i>Everyone shilling the same project? See who, where and how often.</i>\n\n"
         f"<b>📌 Commands</b>\n"
         f"▶️ <b>/start</b>: show this message\n"
+        f"📊 <b>/analyze</b>: search past posts for a project ({SEARCHES_PER_DAY} a day)\n"
         f"🛑 <b>/cancel</b>: stop the current step\n\n"
         f"<i><b>FOR ADMINS</b></i>\n"
-        f"📊 <b>/analyze</b>: search past posts for a project\n"
         f"➕ <b>/add_channel</b>: add a channel\n"
         f"➖ <b>/del_channel</b>: remove a channel\n"
         f"📋 <b>/list_channels</b>: list watched channels\n"
