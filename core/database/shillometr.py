@@ -1,6 +1,8 @@
 import aiosqlite
 from typing import List, Tuple, Any, Union
 
+from core.database.schema import SCHEMA
+
 
 DB_NAME = "shillometr.db"
 
@@ -21,52 +23,8 @@ async def execute_query(query, params=None, commit=True, fetchall=False, fetchon
 
 
 async def create_tables():
-    await execute_query("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER UNIQUE NOT NULL,
-            username TEXT,
-            first_name TEXT
-        )
-    """)
-
-    await execute_query("""
-            CREATE TABLE IF NOT EXISTS channels (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                channel_id INTEGER UNIQUE NOT NULL,
-                username TEXT,
-                title TEXT NOT NULL
-            )
-        """)
-
-    await execute_query("""
-            CREATE TABLE IF NOT EXISTS projects (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL
-            )
-        """)
-
-    await execute_query("""
-            CREATE TABLE IF NOT EXISTS posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                message_id INTEGER NOT NULL,
-                link TEXT,
-                post_date DATETIME NOT NULL,
-                text TEXT,
-                channel_db_id INTEGER,
-                FOREIGN KEY (channel_db_id) REFERENCES channels (id)
-            )
-        """)
-
-    await execute_query("""
-            CREATE TABLE IF NOT EXISTS mentions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                post_db_id INTEGER,
-                project_db_id INTEGER,
-                FOREIGN KEY (post_db_id) REFERENCES posts (id),
-                FOREIGN KEY (project_db_id) REFERENCES projects (id)
-            )
-        """)
+    async with aiosqlite.connect(DB_NAME) as connection:
+        await connection.executescript(SCHEMA)
     print("База данных и таблицы успешно проверены/созданы.")
 
 
@@ -131,14 +89,6 @@ async def get_all_projects() -> List[Tuple[int, str]]:
     query = "SELECT id, name FROM projects ORDER BY name"
     results = await execute_query(query, fetchall=True)
     return results if results else []
-
-
-async def register_user(user_id: int, username: str, first_name: str):
-    query_select = "SELECT 1 FROM users WHERE user_id = ?"
-    existing = await execute_query(query_select, (user_id,), fetchone=True)
-    if not existing:
-        query_insert = "INSERT INTO users (user_id, username, first_name) VALUES (?, ?, ?)"
-        await execute_query(query_insert, (user_id, username, first_name))
 
 
 async def seed_initial_channels(client, channels_to_seed: list):

@@ -34,21 +34,20 @@ async def process_new_channel_post(
             clean_id = str(event.chat.id).replace('-100', '')
             link = f"https://t.me/c/{clean_id}/{event.message.id}"
 
-        post_db_id = await save_post(
-            channel_db_id=channel_db_id,
-            message_id=event.message.id,
-            link=link,
-            post_date=event.message.date,
-            text=event.message.text
-        )
-
-        found_projects = []
-        for project_id, project_name in projects_to_watch:
-            if project_name.lower() in message_text.lower():
+        found = [(project_id, project_name) for project_id, project_name in projects_to_watch
+                 if project_name.lower() in message_text.lower()]
+        if found:
+            post_db_id = await save_post(
+                channel_db_id=channel_db_id,
+                message_id=event.message.id,
+                link=link,
+                post_date=event.message.date,
+                text=event.message.text
+            )
+            for project_id, _ in found:
                 await log_mention(post_db_id=post_db_id, project_db_id=project_id)
-                found_projects.append(project_name.capitalize())
+            found_projects = [project_name.capitalize() for _, project_name in found]
 
-        if found_projects:
             channel_title = event.chat.title
             projects_str = ", ".join(found_projects)
             notification_text = (

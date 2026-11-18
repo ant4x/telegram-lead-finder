@@ -3,14 +3,10 @@ import logging
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from core.database.shillometr import register_user
 
 
 async def start(message: Message, bot: Bot):
-    user_id = message.from_user.id
-    username = message.from_user.username or "не указан"
     first_name = message.from_user.first_name or "не указано"
-    await register_user(user_id, username, first_name)
 
     await message.answer(
         f"👋 <b>Привет, {first_name}!</b>\n\n"
