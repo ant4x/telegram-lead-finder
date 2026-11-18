@@ -49,6 +49,7 @@ async def run_joiner(bot: Bot, client: TelegramClient, admins: list[int]):
     async def join(channel) -> bool:
         entity = await client.get_entity(channel)
         if not entity.left:
+            logging.info(f"Already in {entity.title}")
             return False
         await client(JoinChannelRequest(entity))
         logging.info(f"Joined {entity.title}")
@@ -61,7 +62,13 @@ async def run_joiner(bot: Bot, client: TelegramClient, admins: list[int]):
             except Exception as e:
                 logging.error(f"Message to admin {admin_id} failed: {e}")
 
-    for channel in await get_all_channels():
-        queue.put_nowait(channel)
-    while await join_next(await queue.get(), queue, join, notify):
-        pass
+    # Nobody awaits this task, so an error that stops it is logged here instead of vanishing.
+    try:
+        channels = await get_all_channels()
+        logging.info(f"Checking {len(channels)} channels on the list to join")
+        for channel in channels:
+            queue.put_nowait(channel)
+        while await join_next(await queue.get(), queue, join, notify):
+            pass
+    except Exception:
+        logging.exception("Joining channels stopped")
