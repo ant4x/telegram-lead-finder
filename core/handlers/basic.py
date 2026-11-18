@@ -1,4 +1,5 @@
 import logging
+from html import escape
 
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
@@ -9,7 +10,7 @@ async def start(message: Message, bot: Bot):
     first_name = message.from_user.first_name or "не указано"
 
     await message.answer(
-        f"👋 <b>Привет, {first_name}!</b>\n\n"
+        f"👋 <b>Привет, {escape(first_name)}!</b>\n\n"
         f"📡 <i>Шиллит весь Telegram? Мы знаем, кто, где и сколько.</i>\n\n"
         f"<b>📌 Доступные команды:</b>\n"
         f"▶️ <b>/start</b> — Показать это сообщение\n"

@@ -1,4 +1,5 @@
 import logging
+from html import escape
 from telethon import events
 from telethon.client import TelegramClient
 from aiogram import Bot
@@ -6,6 +7,7 @@ from core.database.shillometr import (get_all_channels, get_all_projects,
                                       find_channel_db_id_by_telegram_id,
                                       save_post, log_mention)
 from core.settings import settings
+from core.text import quote
 
 
 async def process_new_channel_post(
@@ -46,15 +48,15 @@ async def process_new_channel_post(
             )
             for project_id, _ in found:
                 await log_mention(post_db_id=post_db_id, project_db_id=project_id)
-            found_projects = [project_name.capitalize() for _, project_name in found]
+            found_projects = [escape(project_name.capitalize()) for _, project_name in found]
 
-            channel_title = event.chat.title
+            channel_title = escape(event.chat.title)
             projects_str = ", ".join(found_projects)
             notification_text = (
                 f"📢 <b>Найдено упоминание!</b>\n\n"
                 f"<b>Проект(ы):</b> {projects_str}\n"
                 f"<b>Канал:</b> {channel_title}\n\n"
-                f"<i>«{message_text[:200]}...»</i>\n\n"
+                f"<i>«{quote(message_text)}»</i>\n\n"
                 f"<a href='{link}'><b>Перейти к сообщению</b></a>"
             )
 

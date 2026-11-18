@@ -1,5 +1,6 @@
 import asyncio
 import re
+from html import escape
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
@@ -10,6 +11,7 @@ from core.states.analyzer_states import AnalyzeStates
 from core.keyboards.confirmation_kb import button_analyze_confirm
 from core.keyboards.days_selection_kb import button_days_selection
 from core.database.shillometr import get_all_channels
+from core.utils.messages import send_lines
 
 
 IS_SCAN_RUNNING = False
@@ -54,7 +56,7 @@ async def process_days_selection(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         f"3️⃣ Итак, подведем итог:\n\n"
-        f"Ищем упоминания проекта: <b>{project_name}</b>\n"
+        f"Ищем упоминания проекта: <b>{escape(project_name)}</b>\n"
         f"Период анализа: последние <b>{days}</b> дней\n\n"
         f"Всё верно?",
         reply_markup=button_analyze_confirm,
@@ -88,7 +90,7 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
             return
 
         await callback.message.edit_text(
-            f"✅ Отлично! Запускаю анализ проекта '<b>{project_name}</b>' за последние <b>{days}</b> дней.\n\n"
+            f"✅ Отлично! Запускаю анализ проекта '<b>{escape(project_name)}</b>' за последние <b>{days}</b> дней.\n\n"
             f"Это может занять несколько минут. Результаты придут отдельным сообщением.",
             parse_mode="HTML"
         )
@@ -110,6 +112,13 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
     await state.clear()
 
 
+REPORT_ANSWERS = {
+    "report_channels": None,
+    "report_posts": "✅ Ссылки отправлены!",
+    "report_all": "✅ Полная информация отправлена!",
+}
+
+
 async def process_report_details(callback: CallbackQuery):
     user_id = callback.from_user.id
     action = callback.data
@@ -122,39 +131,7 @@ async def process_report_details(callback: CallbackQuery):
         await callback.answer()
         return
 
-    if action == "report_channels":
-        channels_str = "\n".join(user_results['channels'])
-        await callback.message.answer(f"<b>📄 Каналы с упоминаниями:</b>\n{channels_str}", parse_mode="HTML")
-        await callback.answer()
-
-    elif action == "report_posts":
-        links = user_results['links']
-        message_part = "<b>📄 Ссылки на посты с упоминаниями:</b>\n"
-        for link in links:
-            if len(message_part) + len(link) > 4096:
-                await callback.message.answer(message_part, parse_mode="HTML", disable_web_page_preview=True)
-                message_part = ""
-            message_part += link + "\n"
-
-        if message_part:
-            await callback.message.answer(message_part, parse_mode="HTML", disable_web_page_preview=True)
-        await callback.answer(text="✅ Ссылки отправлены!")
-
-    elif action == "report_all":
-        channels_str = "\n".join(user_results['channels'])
-        await callback.message.answer(f"<b>📄 Каналы с упоминаниями:</b>\n{channels_str}", parse_mode="HTML")
-        links = user_results['links']
-        message_part = "<b>📄 Ссылки на посты с упоминаниями:</b>\n"
-        for link in links:
-            if len(message_part) + len(link) > 4096:
-                await callback.message.answer(message_part, parse_mode="HTML", disable_web_page_preview=True)
-                message_part = ""
-            message_part += link + "\n"
-        if message_part:
-            await callback.message.answer(message_part, parse_mode="HTML", disable_web_page_preview=True)
-        await callback.answer(text="✅ Полная информация отправлена!")
-
-    elif action == "report_close":
+    if action == "report_close":
         await callback.message.edit_text(
             "Меню детализации закрыто.\n\n"
             "Чтобы начать новый анализ, используйте команду /analyze."
@@ -163,3 +140,10 @@ async def process_report_details(callback: CallbackQuery):
         if user_id in SCAN_RESULTS_CACHE:
             del SCAN_RESULTS_CACHE[user_id]
         await callback.answer()
+        return
+
+    if action in ("report_channels", "report_all"):
+        await send_lines(callback.message, "<b>📄 Каналы с упоминаниями:</b>", user_results['channels'])
+    if action in ("report_posts", "report_all"):
+        await send_lines(callback.message, "<b>📄 Ссылки на посты с упоминаниями:</b>", user_results['links'])
+    await callback.answer(text=REPORT_ANSWERS[action])

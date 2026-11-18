@@ -1,3 +1,5 @@
+from html import escape
+
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
@@ -14,6 +16,7 @@ from core.keyboards.channel_management_kb import get_channels_for_deletion_keybo
 from core.states.management_states import AddChannelStates, DeleteChannelStates
 from core.states.project_states import ProjectManagementStates
 from core.database.shillometr import (add_project, get_all_projects)
+from core.utils.messages import send_lines
 
 
 async def add_channel_start(message: Message, state: FSMContext):
@@ -45,10 +48,10 @@ async def process_channel_identifier(message: Message, state: FSMContext):
         status = await add_channel(channel_id=channel_id, username=username, title=title)
 
         if status == 'added':
-            await message.answer(f"✅ Канал '<b>{title}</b>' добавлен.\n\n"
+            await message.answer(f"✅ Канал '<b>{escape(title)}</b>' добавлен.\n\n"
                                  f"Отправьте следующий или введите /cancel.", parse_mode="HTML")
         elif status == 'exists':
-            await message.answer(f"ℹ️ Канал '<b>{title}</b>' уже есть в списке.\n\n"
+            await message.answer(f"ℹ️ Канал '<b>{escape(title)}</b>' уже есть в списке.\n\n"
                                  f"Отправьте другой или введите /cancel.", parse_mode="HTML")
 
     except ValueError:
@@ -76,16 +79,9 @@ async def list_channels_command(message: Message):
         await message.answer("❌ Список отслеживаемых каналов пуст. Добавьте каналы с помощью команды /add_channel.")
         return
 
-    response_parts = ["<b>📋 Список отслеживаемых каналов:</b>"]
-    for db_id, title, identifier in channels:
-        response_parts.append(f"▪️ {title} (<code>{identifier}</code>)")
-
-    total_count = len(channels)
-    response_parts.append(f"\n<b>🤙 Всего каналов в базе: {total_count}</b>")
-
-    response_text = "\n".join(response_parts)
-
-    await message.answer(response_text, parse_mode="HTML")
+    lines = [f"▪️ {escape(title)} (<code>{escape(identifier)}</code>)" for _, title, identifier in channels]
+    lines.append(f"\n<b>🤙 Всего каналов в базе: {len(channels)}</b>")
+    await send_lines(message, "<b>📋 Список отслеживаемых каналов:</b>", lines)
 
 
 async def delete_channel_start(message: Message, state: FSMContext):
@@ -164,13 +160,13 @@ async def process_delete_by_name(message: Message, state: FSMContext):
 
         if not result:
             await message.answer(
-                f"ℹ️ Канал '<b>{entity.title}</b>' найден в Telegram, но его нет в вашем списке мониторинга. Попробуйте еще раз или введите /cancel.",
+                f"ℹ️ Канал '<b>{escape(entity.title)}</b>' найден в Telegram, но его нет в вашем списке мониторинга. Попробуйте еще раз или введите /cancel.",
                 parse_mode="HTML")
             return
 
         db_id, title = result
         await message.answer(
-            f"🧐 Найден канал '<b>{title}</b>'. Вы уверены, что хотите удалить его из мониторинга?",
+            f"🧐 Найден канал '<b>{escape(title)}</b>'. Вы уверены, что хотите удалить его из мониторинга?",
             reply_markup=get_delete_confirmation_keyboard(db_id),
             parse_mode="HTML"
         )
@@ -218,10 +214,10 @@ async def process_project_add_name(message: Message, state: FSMContext):
     status = await add_project(project_name)
 
     if status == 'added':
-        await message.answer(f"✅ Проект '<b>{project_name}</b>' добавлен.\n\n"
+        await message.answer(f"✅ Проект '<b>{escape(project_name)}</b>' добавлен.\n\n"
                              f"Отправьте следующий или введите /cancel.", parse_mode="HTML")
     elif status == 'exists':
-        await message.answer(f"ℹ️ Проект '<b>{project_name}</b>' уже есть в списке.\n\n"
+        await message.answer(f"ℹ️ Проект '<b>{escape(project_name)}</b>' уже есть в списке.\n\n"
                              f"Отправьте другой или введите /cancel.", parse_mode="HTML")
 
 
@@ -234,12 +230,9 @@ async def list_projects_command(message: Message):
         await message.answer("🛑 Список отслеживаемых проектов пуст. Добавьте первый с помощью /add_project.")
         return
 
-    response_text = "<b>Проекты для отслеживания:</b>\n\n"
-    for db_id, name in projects:
-        response_text += f"▪️ {name.capitalize()}\n"
-
-    response_text += f"\n<b>Всего проектов: {len(projects)}</b>"
-    await message.answer(response_text, parse_mode="HTML")
+    lines = [f"▪️ {escape(name.capitalize())}" for _, name in projects]
+    lines.append(f"\n<b>Всего проектов: {len(projects)}</b>")
+    await send_lines(message, "<b>Проекты для отслеживания:</b>\n", lines)
 
 
 async def delete_project_start(message: Message):

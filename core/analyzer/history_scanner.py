@@ -1,4 +1,5 @@
 import asyncio
+from html import escape
 from datetime import datetime, timedelta, timezone
 from telethon.client import TelegramClient
 from telethon.errors import FloodWaitError, ChannelPrivateError
@@ -107,7 +108,7 @@ async def start_full_scan(
     report_text = (
         f"🏁 <b>Анализ завершен!</b> 🏁\n\n"
         f"<b>Период:</b> последние {days} дней\n"
-        f"<b>Ключевые слова:</b> {', '.join(keywords)}\n\n"
+        f"<b>Ключевые слова:</b> {escape(', '.join(keywords))}\n\n"
         f"<b><u>Сводная статистика:</u></b>\n"
         f"▫️ Проверено каналов: {successful_scans} из {total_channels_count} (неудачно: {failed_scans})\n"
         f"▫️ Всего просмотрено постов: {total_posts_scanned}\n"
