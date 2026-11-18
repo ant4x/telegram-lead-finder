@@ -103,7 +103,7 @@ async def main():
         await seed_initial_channels(telethon_client, INITIAL_CHANNELS)
 
         logging.info("Запускаю фоновый мониторинг...")
-        asyncio.create_task(start_monitoring(bot, telethon_client))
+        start_monitoring(bot, telethon_client)
 
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
