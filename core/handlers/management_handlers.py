@@ -14,6 +14,7 @@ from core.keyboards.channel_management_kb import get_channels_for_deletion_keybo
 from core.states.management_states import AddChannelStates, DeleteChannelStates
 from core.states.project_states import ProjectManagementStates
 from core.utils.messages import send_lines
+from core.monitoring.joiner import queue as join_queue
 from core.text import INVALID_KEYWORD, valid_keyword
 
 
@@ -21,6 +22,8 @@ async def add_channel_start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("➡️ Let's add channels.\n\n"
                          "👉 Send a channel username, link or ID.\n"
+                         "📡 The reading account joins every channel you add, one a minute: "
+                         "Telegram sends new posts only to members.\n"
                          "🛑 Send /cancel when you're done.")
     await state.set_state(AddChannelStates.waiting_for_identifier)
 
@@ -31,9 +34,10 @@ async def process_channel_identifier(message: Message, state: FSMContext):
     try:
         channel_id, username, title = await resolve_channel(channel_input)
         status = await add_channel(channel_id=channel_id, username=username, title=title)
+        join_queue.put_nowait(channel_id)
 
         if status == 'added':
-            await message.answer(f"✅ Added <b>{escape(title)}</b>.\n\n"
+            await message.answer(f"✅ Added <b>{escape(title)}</b>. The reading account will join it for live alerts.\n\n"
                                  f"Send another one, or /cancel to finish.", parse_mode="HTML")
         elif status == 'exists':
             await message.answer(f"ℹ️ <b>{escape(title)}</b> is already on the list.\n\n"

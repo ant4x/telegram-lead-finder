@@ -23,6 +23,7 @@ from core.states.analyzer_states import AnalyzeStates
 from core.utils.telethon_client import client as telethon_client, resolve_channel
 from core.database.queries import create_tables, seed_initial_channels
 from core.monitoring.listener import start_monitoring
+from core.monitoring.joiner import run_joiner
 
 
 # Channels added on the first run, while the channel list is empty: one username or link per line.
@@ -103,6 +104,7 @@ async def main():
 
         await seed_initial_channels(resolve_channel, SEED_CHANNELS_FILE.read_text(encoding="utf-8").split())
         start_monitoring(bot, telethon_client)
+        joiner = asyncio.create_task(run_joiner(bot, telethon_client, settings.bots.admins_id))  # the variable keeps the task alive
 
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
