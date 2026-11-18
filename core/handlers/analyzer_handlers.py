@@ -5,7 +5,6 @@ from html import escape
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import Command
 from core.analyzer.history_scanner import start_full_scan
 from core.utils.telethon_client import client as telethon_client
 from core.states.analyzer_states import AnalyzeStates

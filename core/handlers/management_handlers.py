@@ -2,7 +2,6 @@ from html import escape
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import Command
 
 from core.keyboards.delete_kb import get_delete_choice_keyboard, get_delete_confirmation_keyboard
 from core.utils.telethon_client import resolve_channel
@@ -14,7 +13,6 @@ from core.keyboards.project_management_kb import get_projects_for_deletion_keybo
 from core.keyboards.channel_management_kb import get_channels_for_deletion_keyboard
 from core.states.management_states import AddChannelStates, DeleteChannelStates
 from core.states.project_states import ProjectManagementStates
-from core.database.shillometr import (add_project, get_all_projects)
 from core.utils.messages import send_lines
 
 

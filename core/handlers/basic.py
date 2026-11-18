@@ -1,12 +1,9 @@
-import logging
 from html import escape
 
-from aiogram import Bot
-from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 
-async def start(message: Message, bot: Bot):
+async def start(message: Message):
     first_name = message.from_user.first_name or "не указано"
 
     await message.answer(
@@ -31,9 +28,5 @@ async def admins_only(message: Message):
     await message.answer("❌ У вас нет прав для выполнения этой команды.")
 
 
-async def filter_text(message: Message, state: FSMContext):
-    logging.info(f"filter_text получил сообщение: {message.text}")
-    current_state = await state.get_state()
-    if current_state is not None:
-        return
+async def filter_text(message: Message):
     await message.answer("⚠️ Данный бот работает только со встроенными командами")

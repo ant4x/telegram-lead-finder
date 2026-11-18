@@ -1,3 +1,5 @@
+import logging
+
 import aiosqlite
 from typing import List, Tuple, Any, Union
 
@@ -25,10 +27,7 @@ async def execute_query(query, params=None, commit=True, fetchall=False, fetchon
 async def create_tables():
     async with aiosqlite.connect(DB_NAME) as connection:
         await connection.executescript(SCHEMA)
-    print("База данных и таблицы успешно проверены/созданы.")
-
-
-# ---КАНАЛЫ---
+    logging.info("Database tables are ready")
 
 
 async def add_channel(channel_id: int, username: str, title: str) -> str:
@@ -36,12 +35,10 @@ async def add_channel(channel_id: int, username: str, title: str) -> str:
     existing = await execute_query(query_select, (channel_id,), fetchone=True)
 
     if existing:
-        print(f"Попытка добавить существующий канал '{title}'.")
         return 'exists'
 
     query_insert = "INSERT INTO channels (channel_id, username, title) VALUES (?, ?, ?)"
     await execute_query(query_insert, (channel_id, username, title))
-    print(f"Канал '{title}' добавлен в базу данных.")
     return 'added'
 
 
@@ -72,9 +69,6 @@ async def get_all_channels_with_details() -> List[Tuple[int, str, str]]:
     return await execute_query(query, fetchall=True)
 
 
-# ---ПРОЕКТЫ---
-
-
 async def add_project(name: str) -> str:
     name_lower = name.lower()
     existing = await execute_query("SELECT 1 FROM projects WHERE name = ?", (name_lower,), fetchone=True)
@@ -94,23 +88,20 @@ async def get_all_projects() -> List[Tuple[int, str]]:
 async def seed_initial_channels(resolve, channels_to_seed: list):
     existing_channels = await get_all_channels()
     if existing_channels:
-        print("База данных каналов уже наполнена. Пропускаю начальное наполнение.")
         return
 
-    print("База данных каналов пуста. Начинаю начальное наполнение...")
     for channel_input in channels_to_seed:
         try:
             channel_id, username, title = await resolve(channel_input)
             await add_channel(channel_id=channel_id, username=username, title=title)
         except Exception as e:
-            print(f"Не удалось добавить '{channel_input}': {e}")
-    print("Начальное наполнение базы каналов завершено.")
+            logging.warning(f"Seed channel {channel_input} was not added: {e}")
+    logging.info("Seed channels added")
 
 
-async def delete_channel_by_id(db_id: int) -> bool:
+async def delete_channel_by_id(db_id: int):
     query = "DELETE FROM channels WHERE id = ?"
     await execute_query(query, (db_id,))
-    return True
 
 
 async def find_channel(channel_id: int) -> tuple | None:
@@ -118,12 +109,8 @@ async def find_channel(channel_id: int) -> tuple | None:
     return await execute_query(query, (channel_id,), fetchone=True)
 
 
-async def delete_project_by_id(db_id: int) -> bool:
+async def delete_project_by_id(db_id: int):
     await execute_query("DELETE FROM projects WHERE id = ?", (db_id,))
-    return True
-
-
-# --- ФУНКЦИИ ДЛЯ СОХРАНЕНИЯ РЕЗУЛЬТАТОВ МОНИТОРИНГА ---
 
 
 async def save_post(channel_db_id: int, message_id: int, link: str, post_date, text: str) -> int:

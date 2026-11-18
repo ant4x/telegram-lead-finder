@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pathlib import Path
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.types import BotCommand
@@ -23,7 +24,8 @@ from core.database.shillometr import create_tables, seed_initial_channels
 from core.monitoring.listener import start_monitoring
 
 
-INITIAL_CHANNELS = []
+# Channels added on the first run, while the channel list is empty: one username or link per line.
+SEED_CHANNELS_FILE = Path("seed_channels.txt")
 
 ADMIN_COMMANDS = ("analyze", "add_channel", "del_channel", "list_channels", "add_project", "del_project",
                   "list_projects")
@@ -95,36 +97,26 @@ async def main():
 
     dp.message.register(admins_only, Command(*ADMIN_COMMANDS))
 
-    # Фильтры
-    dp.message.register(filter_text, StateFilter(None), F.text & ~F.text.startswith('/'))
-    content_type_filters = [
-        F.photo, F.document, F.video, F.audio, F.voice, F.sticker,
-        F.animation, F.video_note, F.contact, F.location, F.venue, F.poll, F.dice
-    ]
-    for content_filter in content_type_filters:
-        dp.message.register(filter_text, StateFilter(None), content_filter)
+    # Anything else outside a dialog: text, unknown commands, photos, stickers.
+    dp.message.register(filter_text, StateFilter(None))
 
     try:
-        logging.info("Запускаю Telethon клиент...")
         await telethon_client.start()
-        logging.info("Telethon клиент запущен.")
+        logging.info("Telethon client started")
 
-        await seed_initial_channels(resolve_channel, INITIAL_CHANNELS)
-
-        logging.info("Запускаю фоновый мониторинг...")
+        await seed_initial_channels(resolve_channel, SEED_CHANNELS_FILE.read_text(encoding="utf-8").split())
         start_monitoring(bot, telethon_client)
 
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
 
     finally:
-        logging.info("Останавливаю Telethon клиент...")
         await telethon_client.disconnect()
-        logging.info("Telethon клиент остановлен.")
+        logging.info("Telethon client stopped")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("Бот остановлен.")
+        logging.info("Bot stopped")

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from html import escape
 from datetime import datetime, timedelta, timezone
 from telethon.client import TelegramClient
@@ -37,20 +38,19 @@ async def _scan_single_channel(client: TelegramClient, channel_username: str, ke
             if result.scanned_posts % 100 == 0:
                 await asyncio.sleep(BATCH_DELAY_SECONDS)
 
-        print(
-            f"✅ Канал {channel_username}: просмотрено {result.scanned_posts} постов, найдено {result.found_mentions} упоминаний.")
+        logging.info(f"{channel_username}: {result.scanned_posts} posts in the period, {result.found_mentions} mentions")
         return result
 
     except (ValueError, ChannelPrivateError) as e:
-        print(f"❌ Не удалось получить доступ к каналу {channel_username}: {e}")
+        logging.warning(f"{channel_username} is not accessible: {e}")
         return None
     except FloodWaitError as e:
         # Telethon itself waits out limits of up to a minute (flood_sleep_threshold) and repeats the request,
         # so a wait that reaches this point is longer: the channel is skipped.
-        print(f"❗️ FloodWaitError в канале {channel_username}: Telegram просит подождать {e.seconds} секунд, канал пропущен.")
+        logging.warning(f"{channel_username} skipped: Telegram asks to wait {e.seconds} seconds")
         return None
-    except Exception as e:
-        print(f"❌ Неизвестная ошибка при сканировании {channel_username}: {e}")
+    except Exception:
+        logging.exception(f"{channel_username} failed")
         return None
 
 
@@ -68,7 +68,6 @@ async def start_full_scan(
 
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    # Агрегированная статистика
     total_posts_scanned = 0
     total_mentions_found = 0
     channels_with_mentions = set()
@@ -89,7 +88,6 @@ async def start_full_scan(
         else:
             failed_scans += 1
 
-        print(f"--- Делаю паузу на {CHANNEL_DELAY_SECONDS} сек. перед следующим каналом ---")
         await asyncio.sleep(CHANNEL_DELAY_SECONDS)
 
     mention_channels_count = len(channels_with_mentions)

@@ -57,10 +57,10 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
                 await bot.send_message(admin_id, notification_text, parse_mode="HTML",
                                        disable_web_page_preview=True)
             except Exception as e:
-                logging.error(f"🚫 Не удалось отправить уведомление админу {admin_id}: {e}")
+                logging.error(f"Notification to admin {admin_id} failed: {e}")
 
-    except Exception as e:
-        logging.error(f"❌ Ошибка в process_new_channel_post: {e}")
+    except Exception:
+        logging.exception("New post handling failed")
 
 
 def start_monitoring(bot: Bot, client: TelegramClient):
@@ -70,4 +70,4 @@ def start_monitoring(bot: Bot, client: TelegramClient):
     async def handler(event: events.NewMessage.Event):
         await process_new_channel_post(event, bot)
 
-    logging.info("✅ Мониторинг новых постов запущен.")
+    logging.info("Watching new posts")
