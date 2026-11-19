@@ -1,11 +1,13 @@
-# Shillometer
+# Telegram Lead Finder
 
-Shillometer reads the Telegram chats you choose and tells you when someone asks for what you offer, or when a project you follow is mentioned. It reads through a regular Telegram account, the reading account, and never writes to anyone: you decide and reply from your own account. Two modules, run either or both:
+[![Tests](https://github.com/ant4x/telegram-lead-finder/actions/workflows/tests.yml/badge.svg)](https://github.com/ant4x/telegram-lead-finder/actions/workflows/tests.yml)
+
+The bot reads the Telegram chats you choose and tells you when someone asks for what you offer, or when a project you follow is mentioned. It reads through a regular Telegram account, the reading account, and never writes to anyone: you decide and reply from your own account. Two modules, run either or both:
 
 - **Lead finder**: notices people who ask for what you offer, describe a problem you can fix or hire for it, and sends you an alert.
-- **Mentions** (the Shillometer): searches the chats' recent history for a project on request and alerts you as soon as a new post mentions a watched project.
+- **Mentions** (the original Shillometer): searches the chats' recent history for a project on request and alerts you as soon as a new post mentions a watched project.
 
-Built in June 2025 to measure the share of voice of crypto projects across Telegram channels: how many channels promoted ("shilled") each one. The lead finder was added in November 2026 on the same engine. Here a chat means a channel or a group.
+It began in June 2025 as the Shillometer, to measure the share of voice of crypto projects across Telegram channels: how many channels promoted ("shilled") each one. The lead finder was added in November 2026 on the same engine. Here a chat means a channel or a group.
 
 A lead alert as it arrives in the bot's chat (the message and the names are invented):
 
@@ -103,8 +105,8 @@ You need Python 3.10 or newer, a Telegram account to read the chats and a bot to
 4. Install and configure:
 
    ```bash
-   git clone https://github.com/ant4x/shillometer.git
-   cd shillometer
+   git clone https://github.com/ant4x/telegram-lead-finder.git
+   cd telegram-lead-finder
    python -m venv .venv
    source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
    pip install -r requirements.txt
@@ -159,9 +161,15 @@ python -m unittest discover -s tests -t .
 
 Python 3.10+, aiogram 3, Telethon 1.40, aiosqlite, aiohttp, environs, unittest.
 
-## History
+## How I built it
 
 The first commit is the June 2025 version as it ran, without the list of channels it watched. The commits after it, from November 2026, review and fix that code, then add the lead finder step by step; each one says what changed and why.
+
+Since November 2026 I have worked on it with Claude Code, an AI coding assistant, and the commits say so:
+
+- **My part:** what the bot is for and the decisions a user feels. Three kinds of leads; rules first and the AI only on what they found; the bot never writes to anyone, and a person replies from their own account; asking before joining any chat; erasing what people wrote after 30 days; a cap of 300 AI checks a day; the labels and filter modes. They were agreed in a design and a task-by-task plan before any code, and I ran the bot on live channels.
+- **The assistant's part:** most of the code and the tests, task by task against that plan, each change with a test that failed first.
+- **Reviews:** reviewers who had not seen the code read it again after it was written and found what the tests had missed. Two copies of a message arriving at the same moment sent two alerts (`7a5b3b1`); a chat that banned the reading account stopped all joining, and erased leads stayed readable in the database file (both `cccf967`).
 
 ## License
 
