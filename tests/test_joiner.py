@@ -84,6 +84,55 @@ class ApprovalTest(unittest.TestCase):
         joiner.awaiting.append("@first")
         self.assertTrue(joiner.queue.empty())
 
+    def test_one_channel_reads_in_the_singular(self):
+        text = joiner.approval_request(["Daily News"])
+        self.assertIn("isn't in 1 channel on the list", text)
+        self.assertIn("Join it?", text)
+
+
+class Channel:
+    """A channel as Telegram returns it: left is True when the reading account is not a member."""
+
+    def __init__(self, title, left):
+        self.title = title
+        self.left = left
+
+
+class StartupCheckTest(unittest.IsolatedAsyncioTestCase):
+    """At startup the admins hear that the list is empty, or get asked about channels the account is not in."""
+
+    def setUp(self):
+        joiner.awaiting.clear()
+
+    async def check(self, channels: dict) -> list:
+        notes = []
+
+        async def get_entity(channel):
+            return channels[channel]
+
+        async def notify(text, keyboard=None):
+            notes.append((text, keyboard))
+
+        await joiner.check_channels(list(channels), get_entity, notify)
+        return notes
+
+    async def test_an_empty_list_asks_the_admins_to_add_channels(self):
+        self.assertEqual(await self.check({}), [(joiner.NO_CHANNELS, None)])
+        self.assertIn("/add_channel", joiner.NO_CHANNELS)
+
+    async def test_asks_only_about_channels_the_account_is_not_in(self):
+        notes = await self.check({"@in": Channel("Inside", False), "@out": Channel("Outside", True)})
+        self.assertEqual(joiner.awaiting, ["@out"])
+        self.assertEqual(len(notes), 1)
+        text, keyboard = notes[0]
+        self.assertIn("Outside", text)
+        self.assertNotIn("Inside", text)
+        self.assertIsNotNone(keyboard)
+
+    async def test_stays_quiet_when_the_account_is_in_every_channel(self):
+        self.assertEqual(await self.check({"@in": Channel("Inside", False)}), [])
+        self.assertEqual(joiner.awaiting, [])
+
 
 if __name__ == "__main__":
     unittest.main()

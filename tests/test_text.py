@@ -1,6 +1,14 @@
 import unittest
 
-from core.text import post_link, quote, split_message
+from core.text import plural, post_link, quote, split_message
+
+
+class PluralTest(unittest.TestCase):
+    def test_one_is_singular(self):
+        self.assertEqual(plural(1, "channel"), "1 channel")
+
+    def test_other_numbers_are_plural(self):
+        self.assertEqual([plural(0, "channel"), plural(2, "channel")], ["0 channels", "2 channels"])
 
 
 class QuoteTest(unittest.TestCase):

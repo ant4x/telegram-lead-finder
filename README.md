@@ -56,9 +56,8 @@ You need Python 3.10 or newer, a Telegram account to read the channels and a bot
    cp .env.example .env               # then fill in the four values
    ```
 
-5. Put the channels to watch in `seed_channels.txt`, one username or link per line. They are added on the first run; later, admins manage the list from the chat.
-6. Run `python main.py`. At the first prompt, enter the reading account's **phone number**, not the bot token. The login code arrives in the Telegram app, in the chat with "Telegram", not by SMS. Telegram may then ask the account to confirm the new login.
-7. Open your bot in Telegram and send `/start`.
+5. Run `python main.py`. At the first prompt, enter the reading account's **phone number**, not the bot token. The login code arrives in the Telegram app, in the chat with "Telegram", not by SMS. Telegram may then ask the account to confirm the new login.
+6. Open your bot in Telegram and send `/start`. The channel list starts empty: add channels with `/add_channel`, and the bot asks before the reading account joins any of them.
 
 ## Commands
 
@@ -76,7 +75,7 @@ You need Python 3.10 or newer, a Telegram account to read the channels and a bot
 python -m unittest discover -s tests -t .
 ```
 
-32 tests cover the parts that do not need Telegram: keyword matching, quoting and splitting messages, post links, deletes in the database schema, the daily search limit and the channel joining logic, with fakes in place of Telegram.
+38 tests cover the parts that do not need Telegram: keyword matching, quoting and splitting messages, post links, deletes in the database schema, the daily search limit, the startup check of the channel list and the channel joining logic, with fakes in place of Telegram.
 
 ## Limits
 
@@ -91,7 +90,7 @@ Python 3.10+, aiogram 3, Telethon 1.40, aiosqlite, environs, unittest.
 
 ## History
 
-The first commit is the June 2025 version as it ran. The commits after it, from November 2026, review and fix that code; each one says what was wrong and why.
+The first commit is the June 2025 version as it ran, without the list of channels it watched. The commits after it, from November 2026, review and fix that code; each one says what was wrong and why.
 
 ## License
 

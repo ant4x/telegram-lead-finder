@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from pathlib import Path
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.enums import ChatType
@@ -20,14 +19,11 @@ from core.handlers.analyzer_handlers import (start_dialog_analyzer, process_proj
                                              process_days_selection, process_confirmation,
                                              process_report_details)
 from core.states.analyzer_states import AnalyzeStates
-from core.utils.telethon_client import client as telethon_client, resolve_channel
-from core.database.queries import create_tables, seed_initial_channels
+from core.utils.telethon_client import client as telethon_client
+from core.database.queries import create_tables
 from core.monitoring.listener import start_monitoring
 from core.monitoring.joiner import run_joiner
 
-
-# Channels added on the first run, while the channel list is empty: one username or link per line.
-SEED_CHANNELS_FILE = Path("seed_channels.txt")
 
 ADMIN_COMMANDS = ("add_channel", "del_channel", "list_channels", "add_project", "del_project", "list_projects")
 
@@ -104,7 +100,6 @@ async def main():
         await telethon_client.start()
         logging.info("Telethon client started")
 
-        await seed_initial_channels(resolve_channel, SEED_CHANNELS_FILE.read_text(encoding="utf-8").split())
         start_monitoring(bot, telethon_client)
         joiner = asyncio.create_task(run_joiner(bot, telethon_client, settings.bots.admins_id))  # the variable keeps the task alive
 

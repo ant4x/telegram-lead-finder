@@ -85,20 +85,6 @@ async def get_all_projects() -> list[tuple[int, str]]:
     return results if results else []
 
 
-async def seed_initial_channels(resolve, channels_to_seed: list):
-    existing_channels = await get_all_channels()
-    if existing_channels:
-        return
-
-    for channel_input in channels_to_seed:
-        try:
-            channel_id, username, title, _ = await resolve(channel_input)
-            await add_channel(channel_id=channel_id, username=username, title=title)
-        except Exception as e:
-            logging.warning(f"Seed channel {channel_input} was not added: {e}")
-    logging.info("Seed channels added")
-
-
 async def delete_channel_by_id(db_id: int):
     query = "DELETE FROM channels WHERE id = ?"
     await execute_query(query, (db_id,))

@@ -16,7 +16,7 @@ from core.states.project_states import ProjectManagementStates
 from core.utils.messages import send_lines
 from core.monitoring.joiner import approve_awaiting, queue as join_queue
 from core.keyboards.join_kb import join_keyboard
-from core.text import INVALID_KEYWORD, valid_keyword
+from core.text import INVALID_KEYWORD, plural, valid_keyword
 
 
 async def add_channel_start(message: Message, state: FSMContext):
@@ -253,7 +253,7 @@ async def process_join(callback: CallbackQuery):
     """An admin let the reading account join one channel, or every channel the startup message listed."""
     if callback.data == "join_all":
         count = approve_awaiting()
-        answer = f"✅ Joining {count} channels, one a minute. I'll tell you about each one." if count else \
+        answer = f"✅ Joining {plural(count, 'channel')}. I'll report each join." if count else \
             "ℹ️ Nothing left to join."
     else:
         join_queue.put_nowait(int(callback.data.split(":")[1]))

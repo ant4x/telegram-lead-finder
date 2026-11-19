@@ -7,7 +7,7 @@ from telethon.errors import FloodWaitError, ChannelPrivateError
 from aiogram import Bot
 from dataclasses import dataclass, field
 from core.keyboards.report_details_kb import button_report_details
-from core.text import mentions, post_link
+from core.text import mentions, plural, post_link
 
 BATCH_DELAY_SECONDS = 3
 CHANNEL_DELAY_SECONDS = 5
@@ -64,7 +64,7 @@ async def start_full_scan(
         days: int = 7
 ):
     await bot.send_message(user_id,
-                           f"▶️ Searching {len(channels)} channels. This can take a while.")
+                           f"▶️ Searching {plural(len(channels), 'channel')}. This can take a while.")
 
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
 

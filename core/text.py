@@ -14,6 +14,11 @@ def valid_keyword(keyword: str) -> bool:
     return 1 < len(keyword) < 100 and re.search(r"\w", keyword) is not None
 
 
+def plural(number: int, word: str) -> str:
+    """The number with the word, in the plural unless the number is one: "1 channel", "3 channels"."""
+    return f"{number} {word}" if number == 1 else f"{number} {word}s"
+
+
 def mentions(text: str, keyword: str) -> bool:
     """
     Whether the text names the keyword as a whole word or phrase, in any case: "ton" is found in "TON is up",
