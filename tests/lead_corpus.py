@@ -25,6 +25,9 @@ CORPUS: list[tuple[str, str | None]] = [
     # Vacancies
     ("#вакансия Ищем Next.js-разработчика в штат, зарплата от 3000$", "vacancy"),
     ("Hiring: full-time SEO specialist, salary $2500", "vacancy"),
+    # The spec's own example of a vacancy: "ищем" is a company hiring.
+    ("ищем Next.js-разработчика", "vacancy"),
+    ("Ищем SEO-специалиста в команду, оклад 150к", "vacancy"),
     # A request phrase and a vacancy phrase: the request comes first.
     ("В команду нужен верстальщик сайтов, оклад 120к", "request"),
     # Not leads
