@@ -83,14 +83,21 @@ def approval_request(titles: list[str]) -> str:
 
 
 async def check_channels(channels: list, get_entity, notify):
-    """At startup: tells the admins the list is empty, or asks them about channels the account is not in."""
+    """
+    At startup: tells the admins the list is empty, or asks them about channels the account is not in.
+    A chat that cannot be opened, deleted or turned private since it was added, is logged and skipped.
+    """
     if not channels:
         await notify(NO_CHANNELS)
         return
 
     titles = []
     for channel in channels:
-        entity = await get_entity(channel)
+        try:
+            entity = await get_entity(channel)
+        except Exception as e:
+            logging.warning(f"{channel} could not be opened: {e}")
+            continue
         if entity.left:
             awaiting.append(channel)
             titles.append(entity.title)

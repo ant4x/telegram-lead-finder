@@ -133,6 +133,8 @@ class StartupCheckTest(unittest.IsolatedAsyncioTestCase):
         notes = []
 
         async def get_entity(channel):
+            if isinstance(channels[channel], Exception):
+                raise channels[channel]
             return channels[channel]
 
         async def notify(text, keyboard=None):
@@ -153,6 +155,14 @@ class StartupCheckTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Outside", text)
         self.assertNotIn("Inside", text)
         self.assertIsNotNone(keyboard)
+
+    async def test_a_chat_that_cannot_be_opened_does_not_stop_the_check(self):
+        # A chat on the list may be deleted or turn private; the error used to stop the joiner for the whole run.
+        notes = await self.check({"@gone": ValueError("No user has gone as username"),
+                                  "@out": Channel("Outside", True)})
+        self.assertEqual(joiner.awaiting, ["@out"])
+        self.assertEqual(len(notes), 1)
+        self.assertIn("Outside", notes[0][0])
 
     async def test_stays_quiet_when_the_account_is_in_every_channel(self):
         self.assertEqual(await self.check({"@in": Channel("Inside", False)}), [])
