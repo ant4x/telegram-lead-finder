@@ -72,7 +72,7 @@ The reading account is a real Telegram account, so the bot treats it with care:
 
 - **It never writes.** The bot does not post, reply or message anyone from the reading account. Alerts go to you, and you answer from your own account.
 - **It asks before joining.** Telegram sends new messages only to members, so live alerts need the account to be in a chat. The bot never joins on its own: at startup it lists the chats the account is not in and asks the admins, and `/add_channel` asks about each new one. After an admin says yes, it joins one chat a minute and reports each join. After joining a group it reminds you to pass the "I'm not a bot" check many groups ask for, and a chat that admits members by request gets a request.
-- **It respects Telegram's limits.** Telegram publishes no numbers for them. A flood wait is waited out, not retried, and joining stops at the limit of about 500 chats.
+- **It respects Telegram's limits.** Telegram publishes no numbers for them. When Telegram asks to wait, joining waits it out before the next try instead of retrying at once, a search skips the chat, and joining stops at the limit of about 500 chats.
 - **It never leaves a chat.** Removing a chat from the list keeps the account in it, so the bot cannot unsubscribe the owner from chats they read.
 - **Searches are rationed.** Anyone can search three times a day over up to 30 days; admins have no limit and can go back 180 days. One search or chat check runs at a time, with pauses between chats. The search reads channels and groups only, never the account's private chats.
 - **Rights are checked on every step.** Every admin command, dialog step and button checks the sender, because anyone can send a bot any button data. Niches, settings and leads belong to the user who made them, and only that user can change them.
@@ -138,7 +138,7 @@ You need Python 3.10 or newer, a Telegram account to read the chats and a bot to
 python -m unittest discover -s tests -t .
 ```
 
-139 tests cover the parts that do not need Telegram: keyword matching, the lead rules on a corpus of sample messages, alerts and their escaping, repeated texts arriving at once, the 30-day erasing, niches, settings and statistics on a fresh database, the AI answer parsing with its failures and daily cap, the chat check, the history search, the daily search limit, the startup check of the chat list with a chat that cannot be opened, the joining logic and a second tap on a button. Fakes stand in for Telegram and the AI.
+141 tests cover the parts that do not need Telegram: keyword matching, the lead rules on a corpus of sample messages, alerts and their escaping, repeated texts arriving at once, the 30-day erasing, niches, settings and statistics on a fresh database, the AI answer parsing with its failures and daily cap, the chat check, the history search, the daily search limit, the startup check of the chat list with a chat that cannot be opened, the joining logic and a second tap on a button. Fakes stand in for Telegram and the AI.
 
 ## Limits
 
