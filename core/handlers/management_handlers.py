@@ -5,10 +5,8 @@ from aiogram.types import Message, CallbackQuery
 
 from core.keyboards.delete_kb import get_delete_choice_keyboard, get_delete_confirmation_keyboard
 from core.utils.telethon_client import resolve_channel
-from core.database.queries import add_channel, get_all_channels_with_details, delete_channel_by_id, \
-    find_channel
-from core.database.queries import (add_project, get_all_projects,
-                                      delete_project_by_id)
+from core.database.queries import (add_channel, add_project, delete_channel_by_id, delete_project_by_id, find_channel,
+                                   get_all_channels_with_details, get_all_projects)
 from core.keyboards.project_management_kb import get_projects_for_deletion_keyboard
 from core.keyboards.channel_management_kb import get_channels_for_deletion_keyboard
 from core.states.management_states import AddChannelStates, DeleteChannelStates
@@ -36,8 +34,8 @@ async def process_channel_identifier(message: Message, state: FSMContext):
         channel_id, username, title, member = await resolve_channel(channel_input)
         status = await add_channel(channel_id=channel_id, username=username, title=title)
 
-        result = f"✅ Added <b>{escape(title)}</b>." if status == 'added' else \
-            f"ℹ️ <b>{escape(title)}</b> is already on the list."
+        result = (f"✅ Added <b>{escape(title)}</b>." if status == 'added'
+                  else f"ℹ️ <b>{escape(title)}</b> is already on the list.")
         if member:
             await message.answer(f"{result}\n\nSend another one, or /cancel to finish.", parse_mode="HTML")
         else:
@@ -244,8 +242,8 @@ async def process_join(callback: CallbackQuery):
     """An admin let the reading account join one channel, or every channel the startup message listed."""
     if callback.data == "join_all":
         count = approve_awaiting()
-        answer = f"✅ Joining {plural(count, 'channel')}. I'll report each join." if count else \
-            "ℹ️ Nothing left to join."
+        answer = (f"✅ Joining {plural(count, 'channel')}. I'll report each join." if count
+                  else "ℹ️ Nothing left to join.")
     else:
         join_queue.put_nowait(int(callback.data.split(":")[1]))
         answer = "✅ Joining it. I'll tell you when it's done."

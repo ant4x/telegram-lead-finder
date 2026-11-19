@@ -97,8 +97,8 @@ async def process_lead_message(event: events.NewMessage.Event, bot: Bot, ai: AiC
                                       fingerprint, created_at)
 
         mode = settings.ai_mode if ai.enabled else "off"
-        verdict, failed = (None, False) if mode == "off" else \
-            await _ai_verdict(bot, ai, check, limit, owner_id, day, text, owner_niches, kind)
+        verdict, failed = ((None, False) if mode == "off"
+                           else await _ai_verdict(bot, ai, check, limit, owner_id, day, text, owner_niches, kind))
         lead_kind_shown = verdict.kind if verdict and verdict.kind else kind
         dropped = dropped_by_ai(mode, verdict, settings.kinds)
         if verdict:

@@ -20,6 +20,6 @@ def get_delete_confirmation_keyboard(channel_db_id: int) -> InlineKeyboardMarkup
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(text="✅ Yes, remove", callback_data=f"del_confirm:{channel_db_id}"),
-        InlineKeyboardButton(text="❌ No", callback_data=f"del_confirm:cancel")
+        InlineKeyboardButton(text="❌ No", callback_data="del_confirm:cancel")
     )
     return builder.as_markup()
