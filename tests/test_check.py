@@ -43,7 +43,10 @@ class CheckReportTest(unittest.TestCase):
         self.assertIn("No leads", check_report("@chat", 7, ScanResult(40, [])))
 
     def test_report_for_an_unreadable_chat(self):
-        self.assertIn("Couldn't read", check_report("@chat", 7, None))
+        # The check also fails when Telegram asks to wait longer than a minute: the text must not blame the chat alone.
+        report = check_report("@chat", 7, None)
+        self.assertIn("Couldn't read", report)
+        self.assertIn("wait", report)
 
     def test_report_for_an_empty_history(self):
         self.assertIn("hides its history", check_report("@chat", 7, ScanResult(0, [])))

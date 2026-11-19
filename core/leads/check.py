@@ -44,7 +44,8 @@ def check_report(chat: str, days: int, result: ScanResult | None) -> str:
     shown = escape(chat)
     period = f"the last {plural(days, 'day')}"
     if result is None:
-        return f"❌ Couldn't read {shown}: it is private, hidden from people outside it, or doesn't exist."
+        return (f"❌ Couldn't read {shown}. It may be private or not exist, or Telegram asked to wait; "
+                f"the bot's log says which. Try again later or check the name.")
     if result.scanned_posts == 0:
         return f"📭 No messages in {shown} for {period}, or it hides its history from people outside it."
 

@@ -1,6 +1,9 @@
 import asyncio
 import json
 import unittest
+from unittest import mock
+
+import aiohttp
 
 from core.leads.ai import (INPUT_LIMIT, AiConfig, AiVerdict, ai_line, check_lead, dropped_by_ai, parse_verdict)
 from tests.lead_corpus import WEB
@@ -59,6 +62,16 @@ class CheckLeadTest(unittest.IsolatedAsyncioTestCase):
                                                post=FakePost(asyncio.TimeoutError())))
         logged = "\n".join(logs.output)
         self.assertNotIn(SECRET_TEXT, logged)
+        self.assertNotIn("sk-test-secret", logged)
+
+    async def test_an_http_error_logs_its_status(self):
+        # 401 means a wrong key, 400 or 404 often a wrong model name: the owner needs the code to tell them apart.
+        error = aiohttp.ClientResponseError(mock.Mock(real_url="https://ai.example"), (), status=401,
+                                            message="Unauthorized")
+        with self.assertLogs(level="WARNING") as logs:
+            self.assertIsNone(await check_lead(CONFIG, SECRET_TEXT, [WEB], "request", post=FakePost(error)))
+        logged = "\n".join(logs.output)
+        self.assertIn("401", logged)
         self.assertNotIn("sk-test-secret", logged)
 
     async def test_an_answer_of_the_wrong_shape_gives_none(self):

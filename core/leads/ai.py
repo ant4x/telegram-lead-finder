@@ -99,7 +99,8 @@ async def check_lead(config: AiConfig, text: str, niches: list[Niche], kind: str
         verdict = parse_verdict(answer["choices"][0]["message"]["content"])
     except (asyncio.TimeoutError, TimeoutError, aiohttp.ClientError, KeyError, IndexError, ValueError,
             TypeError, AttributeError) as e:
-        logging.warning(f"AI check failed: {type(e).__name__}")
+        status = f" {e.status}" if isinstance(e, aiohttp.ClientResponseError) else ""
+        logging.warning(f"AI check failed: {type(e).__name__}{status}")
         return None
     if verdict is None:
         logging.warning("AI check failed: the answer is not the JSON asked for")
