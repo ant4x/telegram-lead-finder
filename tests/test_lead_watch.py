@@ -54,6 +54,7 @@ class LeadWatchTest(DbTestCase):
         self.verdict = None
         self.checks = []
         self.limit = DailyLimit(300)
+        self.admins = frozenset({10, 20})
 
     async def check(self, config, text, niches, kind):
         """Stands in for the AI: records the call, lets other tasks run as a real request would, gives the verdict."""
@@ -62,7 +63,8 @@ class LeadWatchTest(DbTestCase):
         return self.verdict
 
     async def handle(self, event, at=NOW):
-        await process_lead_message(event, self.bot, ai=self.ai, check=self.check, limit=self.limit, now=lambda: at)
+        await process_lead_message(event, self.bot, ai=self.ai, admins=self.admins, check=self.check,
+                                   limit=self.limit, now=lambda: at)
 
     async def test_the_niche_owner_gets_the_alert_and_no_one_else(self):
         await self.handle(message("Нужен сайт для студии йоги"))
@@ -76,9 +78,15 @@ class LeadWatchTest(DbTestCase):
         await self.handle(message("Нужен сайт и ремонт офиса"))
         self.assertEqual(sorted(chat_id for chat_id, _, _ in self.bot.sent), [10, 20])
 
+    async def test_an_owner_no_longer_an_admin_gets_nothing(self):
+        # Niches stay in the database when someone leaves ADMINS_ID; the lead finder is for admins only.
+        self.admins = frozenset({10})
+        await self.handle(message("Нужен сайт и ремонт офиса"))
+        self.assertEqual([chat_id for chat_id, _, _ in self.bot.sent], [10])
+
     async def test_one_alert_for_the_same_text_within_a_day(self):
         await self.handle(message("Нужен сайт для студии"), at=NOW)
-        await self.handle(message("нужен сайт для студии  https://t.me/x/1"), at=NOW + 3600)
+        await self.handle(message("нужен  сайт для студии"), at=NOW + 3600)
         self.assertEqual(len(self.bot.sent), 1)
         await self.handle(message("Нужен сайт для студии"), at=NOW + 25 * 3600)
         self.assertEqual(len(self.bot.sent), 2)

@@ -1,6 +1,7 @@
 from telethon import TelegramClient, utils
 from telethon.tl.types import Channel
 from core.settings import settings
+from core.utils.entities import cached_entity
 
 
 client = TelegramClient(
@@ -16,7 +17,7 @@ async def resolve_channel(channel_input) -> tuple[int, str | None, str, bool]:
     and whether the reading account is a member.
     Raises ValueError for anything that is not a channel or a group.
     """
-    entity = await client.get_entity(channel_input)
+    entity = await cached_entity(client, channel_input)
     if not isinstance(entity, Channel):
         raise ValueError(f"{channel_input} is not a channel")
     return utils.get_peer_id(entity), entity.username, entity.title, not entity.left

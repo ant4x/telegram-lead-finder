@@ -144,8 +144,10 @@ async def main():
     if "mentions" in modules:
         handlers.append(partial(process_new_channel_post, bot=bot, admins=settings.bots.admins_id))
     if "leads" in modules:
-        handlers.append(partial(process_lead_message, bot=bot, ai=settings.ai))
-        purge = asyncio.create_task(run_purge())  # the variable keeps the task alive
+        handlers.append(partial(process_lead_message, bot=bot, ai=settings.ai,
+                                admins=frozenset(settings.bots.admins_id)))
+    # Leads saved while the module was on are erased after 30 days even when it is turned off later.
+    purge = asyncio.create_task(run_purge())  # the variable keeps the task alive
 
     try:
         await telethon_client.start()

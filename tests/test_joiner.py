@@ -83,11 +83,15 @@ class JoinNextTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fakes.pauses, [])
         self.assertTrue(fakes.pending.empty())
 
-    async def test_skips_a_channel_that_fails_otherwise(self):
+    async def test_skips_a_channel_that_fails_otherwise_and_says_why(self):
+        # A private chat or one that banned the account: the admin who approved the join must hear it failed.
         fakes = Fakes(ValueError("no such channel"))
         with self.assertLogs(level="ERROR"):
-            self.assertTrue(await fakes.step())
-        self.assertEqual((fakes.pauses, fakes.notes), ([], []))
+            self.assertTrue(await fakes.step("@gone"))
+        self.assertEqual(fakes.pauses, [])
+        self.assertEqual(len(fakes.notes), 1)
+        self.assertIn("@gone", fakes.notes[0])
+        self.assertIn("no such channel", fakes.notes[0])
         self.assertTrue(fakes.pending.empty())
 
 
@@ -163,6 +167,12 @@ class StartupCheckTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(joiner.awaiting, ["@out"])
         self.assertEqual(len(notes), 1)
         self.assertIn("Outside", notes[0][0])
+
+    async def test_a_chat_that_banned_the_account_does_not_stop_the_check(self):
+        # Telegram returns a ChannelForbidden, without "left", for a chat that banned the account.
+        notes = await self.check({"@banned": SimpleNamespace(title="Banned"), "@out": Channel("Outside", True)})
+        self.assertEqual(joiner.awaiting, ["@out"])
+        self.assertNotIn("Banned", notes[0][0])
 
     async def test_stays_quiet_when_the_account_is_in_every_channel(self):
         self.assertEqual(await self.check({"@in": Channel("Inside", False)}), [])

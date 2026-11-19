@@ -49,6 +49,10 @@ async def process_niche_word(message: Message, state: FSMContext):
 
     niche_id = (await state.get_data())["niche_id"]
     status = await add_niche_word(niche_id, word)
+    if status == 'gone':
+        await state.clear()
+        await message.answer("🛑 This niche was removed meanwhile. Add it again with /add_niche.")
+        return
     shown = escape(word.lower())
     result = f"✅ Added <b>{shown}</b>." if status == 'added' else f"ℹ️ <b>{shown}</b> is already in this niche."
     await message.answer(f"{result}\n\nSend another one, or /cancel to finish.", parse_mode="HTML")

@@ -23,7 +23,7 @@ INPUT_LIMIT = 1500
 SUMMARY_LIMIT = 200
 AI_CHECKS_PER_DAY = 300
 AI_LIMIT_REACHED = (f"⏳ Today's {AI_CHECKS_PER_DAY} AI checks are used up. "
-                    f"Until tomorrow (UTC) leads come by the rules alone.")
+                    f"Until midnight UTC, every lead the rules find comes without the AI check.")
 FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 
 INSTRUCTIONS = (
@@ -110,7 +110,7 @@ async def check_lead(config: AiConfig, text: str, niches: list[Niche], kind: str
 def ai_line(verdict: AiVerdict | None, failed: bool) -> str | None:
     """The AI's note in an alert; None when there was no check."""
     if failed:
-        return "⚠️ AI check failed, sent by the rules."
+        return "⚠️ The AI check failed; this lead comes from the rules alone."
     if verdict is None:
         return None
     parts = ([] if verdict.lead else ["likely not a lead"]) + [AUTHOR_LABELS[verdict.author]]

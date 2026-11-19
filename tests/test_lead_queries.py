@@ -1,5 +1,6 @@
 import unittest
 
+from core.database import queries
 from core.database.queries import (add_channel, add_niche, add_niche_word, delete_niche, execute_query,
                                    get_lead_settings, get_niches, purge_old_leads, save_lead, save_lead_settings,
                                    seen_recently, set_lead_verdict)
@@ -13,6 +14,12 @@ class NicheQueriesTest(DbTestCase):
         first = await add_niche(10, "Websites")
         self.assertEqual(await add_niche(10, "Websites"), first)
         self.assertEqual(len(await get_niches(10)), 1)
+
+    async def test_a_word_for_a_niche_deleted_meanwhile_says_so(self):
+        # The niche can be removed with /del_niche's old buttons while the bot waits for its next word.
+        niche_id = await add_niche(10, "Websites")
+        await delete_niche(niche_id, 10)
+        self.assertEqual(await add_niche_word(niche_id, "SEO"), "gone")
 
     async def test_words_come_back_with_their_niche(self):
         niche_id = await add_niche(10, "Websites")
@@ -76,6 +83,16 @@ class LeadQueriesTest(DbTestCase):
                          (None, None, None, None, None, None, "request", "not_lead"))
         self.assertEqual(await execute_query(query, (new,), fetchone=True),
                          ("Нужен сайт", "@ann", "https://t.me/webchat/5", 5, "h1", None, "request", None))
+
+    async def test_purged_text_is_gone_from_the_database_file(self):
+        # Without secure_delete SQLite only marks the old bytes free, and the author and the link stay readable.
+        await save_lead(10, 1, 5, "https://t.me/secretchat/5", "@secret_author", "request", "Нужен сайт", "h1",
+                        NOW - 31 * DAY)
+        await purge_old_leads(before=NOW - 30 * DAY)
+        with open(queries.DB_NAME, "rb") as file:
+            data = file.read()
+        self.assertFalse(b"secret_author" in data, "the author is still in the file")
+        self.assertFalse(b"secretchat" in data, "the link is still in the file")
 
 
 class LeadSettingsQueriesTest(DbTestCase):

@@ -21,8 +21,14 @@ class MatchingNichesTest(unittest.TestCase):
 
 
 class TextHashTest(unittest.TestCase):
-    def test_hash_ignores_links_case_and_spaces(self):
-        self.assertEqual(text_hash("Нужен сайт  https://t.me/a/1"), text_hash("нужен сайт t.me/b/2"))
+    def test_hash_ignores_case_and_spaces(self):
+        self.assertEqual(text_hash("Нужен  сайт\nсрочно"), text_hash("нужен сайт срочно"))
+
+    def test_hash_keeps_links(self):
+        # Order feeds post the same short text with a link to each order, and people sign with their own contact.
+        self.assertNotEqual(text_hash("Нужен сайт на Tilda https://kwork.ru/projects/111"),
+                            text_hash("Нужен сайт на Tilda https://kwork.ru/projects/222"))
+        self.assertNotEqual(text_hash("Нужен лендинг, пишите t.me/ivan"), text_hash("Нужен лендинг, пишите t.me/petr"))
 
     def test_hash_differs_for_other_text(self):
         self.assertNotEqual(text_hash("Нужен сайт"), text_hash("Нужен лендинг"))

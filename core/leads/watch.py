@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from aiogram import Bot
 from telethon import events
 
+from core.access import can_use_leads
 from core.database.queries import (find_channel_db_id_by_telegram_id, get_lead_settings, get_niches,
                                    record_ai_verdict, save_lead, seen_recently)
 from core.keyboards.lead_kb import lead_keyboard
@@ -53,11 +54,12 @@ async def _ai_verdict(bot: Bot, ai: AiConfig, check, limit: DailyLimit, owner_id
     return verdict, verdict is None
 
 
-async def process_lead_message(event: events.NewMessage.Event, bot: Bot, ai: AiConfig, check=check_lead,
-                               limit: DailyLimit = ai_limit, now=time.time):
+async def process_lead_message(event: events.NewMessage.Event, bot: Bot, ai: AiConfig, admins: frozenset[int],
+                               check=check_lead, limit: DailyLimit = ai_limit, now=time.time):
     """
     Alerts every owner whose niches the message matches and who wants this kind of lead, once a day for the same
-    text sent around. With the AI on, labels add its note and the filter keeps out what it rejects.
+    text sent around. With the AI on, labels add its note and the filter keeps out what it rejects. Niches of
+    someone who may no longer use the lead finder, such as a former admin, stay in the database and are skipped.
     """
     text = event.message.raw_text or ""
     if not text or event.out:
@@ -65,7 +67,7 @@ async def process_lead_message(event: events.NewMessage.Event, bot: Bot, ai: AiC
     kind = lead_kind(text)
     if kind is None:
         return
-    niches = matching_niches(text, await get_niches())
+    niches = [niche for niche in matching_niches(text, await get_niches()) if can_use_leads(niche.owner_id, admins)]
     if not niches:
         return
     channel_db_id = await find_channel_db_id_by_telegram_id(event.chat_id)

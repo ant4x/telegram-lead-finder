@@ -3,7 +3,6 @@ The rules that find leads: a message is a lead when it names a word of a niche a
 and has none of the exclusions. They need no database and no network, so they run on every message first.
 """
 import hashlib
-import re
 from dataclasses import dataclass
 
 from core.leads.phrases import EXCLUDE, HASHTAG_KINDS, PROBLEM, REQUEST, VACANCY
@@ -11,7 +10,6 @@ from core.text import mentions
 
 KINDS = ("request", "vacancy", "problem")  # in priority order: a message with phrases of two kinds gets the first
 PHRASES = {"request": REQUEST, "vacancy": VACANCY, "problem": PROBLEM}
-LINKS = re.compile(r"https?://\S+|t\.me/\S+|www\.\S+")
 
 
 @dataclass(frozen=True)
@@ -45,6 +43,9 @@ def matching_niches(text: str, niches: list[Niche]) -> list[Niche]:
 
 
 def text_hash(text: str) -> str:
-    """A fingerprint of the text for spotting the same message sent to several chats: case, links and spaces aside."""
-    plain = " ".join(LINKS.sub(" ", text.lower()).split())
+    """
+    A fingerprint of the text for spotting the same message sent to several chats: case and spaces aside. Links
+    count: order feeds post the same short text with a link to each order, and people sign with their own contact.
+    """
+    plain = " ".join(text.lower().split())
     return hashlib.sha256(plain.encode("utf-8")).hexdigest()

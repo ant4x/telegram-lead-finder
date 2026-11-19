@@ -25,7 +25,7 @@ COMMANDS = (
     Command("add_project", "🧐", "Watch a project", True, "mentions"),
     Command("del_project", "😒", "Stop watching a project", True, "mentions"),
     Command("list_projects", "📋", "List watched projects", True, "mentions"),
-    Command("add_niche", "🎯", "Add a niche of leads", True, "leads"),
+    Command("add_niche", "🎯", "Add a niche: a topic and its words", True, "leads"),
     Command("list_niches", "📋", "List your niches", True, "leads"),
     Command("del_niche", "🗑", "Remove a niche", True, "leads"),
     Command("lead_settings", "⚙️", "Choose which leads to get", True, "leads"),
@@ -35,7 +35,7 @@ COMMANDS = (
 
 TAGLINES = {
     "mentions": "📡 <i>Everyone shilling the same project? See who, where and how often.</i>",
-    "leads": "🎯 <i>Someone in your chats needs what you offer? Get told, then reply yourself.</i>",
+    "leads": "🎯 <i>Someone in your chats needs what you offer? Get an alert, then reply from your own account.</i>",
 }
 
 

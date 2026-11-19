@@ -34,9 +34,9 @@ class LeadStatsQueryTest(DbTestCase):
 class StatsLinesTest(unittest.TestCase):
     def test_line_shows_dropped_by_ai_only_when_there_are_some(self):
         self.assertEqual(stats_lines([("Web", 12, 3, 5, 4, 0)]),
-                         ["▪️ <b>Web</b>: 12 alerts · 3 replied · 5 not leads · 4 unmarked"])
+                         ["▪️ <b>Web</b>: 12 alerts · 3 I'll reply · 5 not a lead · 4 unmarked"])
         self.assertEqual(stats_lines([("Web", 1, 0, 1, 0, 7)]),
-                         ["▪️ <b>Web</b>: 1 alert · 0 replied · 1 not lead · 0 unmarked · 7 dropped by AI"])
+                         ["▪️ <b>Web</b>: 1 alert · 0 I'll reply · 1 not a lead · 0 unmarked · 7 dropped by AI"])
 
     def test_chat_titles_are_escaped(self):
         self.assertIn("&lt;b&gt;", stats_lines([("<b>", 1, 0, 0, 1, 0)])[0])

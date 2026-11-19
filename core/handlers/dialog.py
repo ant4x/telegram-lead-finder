@@ -9,4 +9,4 @@ async def cancel_dialog(message: Message, state: FSMContext):
         return
 
     await state.clear()
-    await message.answer("☑️ Canceled.")
+    await message.answer("☑️ Stopped. Anything you added stays.")

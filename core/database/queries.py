@@ -1,4 +1,5 @@
 import logging
+import sqlite3
 
 import aiosqlite
 from typing import Any
@@ -129,9 +130,15 @@ async def add_niche(owner_id: int, name: str) -> int:
 
 
 async def add_niche_word(niche_id: int, word: str) -> str:
-    """'added', or 'exists' when the niche has the word already. Words are kept in lower case."""
-    changed = await execute_changes("INSERT OR IGNORE INTO niche_words (niche_id, word) VALUES (?, ?)",
-                                    (niche_id, word.lower()))
+    """
+    'added', 'exists' when the niche has the word already, or 'gone' when the niche was deleted meanwhile.
+    Words are kept in lower case.
+    """
+    try:
+        changed = await execute_changes("INSERT OR IGNORE INTO niche_words (niche_id, word) VALUES (?, ?)",
+                                        (niche_id, word.lower()))
+    except sqlite3.IntegrityError:  # OR IGNORE does not cover foreign keys
+        return 'gone'
     return 'added' if changed else 'exists'
 
 
@@ -186,10 +193,17 @@ async def set_lead_verdict(lead_id: int, owner_id: int, verdict: str) -> bool:
 
 
 async def purge_old_leads(before: int) -> int:
-    """Erases the text, author and links of leads older than the given time and returns how many; counts stay."""
-    return await execute_changes(
-        "UPDATE leads SET text = NULL, author = NULL, summary = NULL, link = NULL, message_id = NULL, text_hash = NULL"
-        " WHERE created_at < ? AND link IS NOT NULL", (before,))
+    """
+    Erases the text, author and links of leads older than the given time and returns how many; counts stay.
+    secure_delete makes SQLite overwrite the old bytes: otherwise it only marks them free, and they stay in the file.
+    """
+    async with aiosqlite.connect(DB_NAME) as connection:
+        await connection.execute("PRAGMA secure_delete = ON")
+        cursor = await connection.execute(
+            "UPDATE leads SET text = NULL, author = NULL, summary = NULL, link = NULL, message_id = NULL,"
+            " text_hash = NULL WHERE created_at < ? AND text IS NOT NULL", (before,))
+        await connection.commit()
+        return cursor.rowcount
 
 
 async def get_lead_settings(user_id: int) -> LeadSettings:

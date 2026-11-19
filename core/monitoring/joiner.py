@@ -6,6 +6,7 @@ channel limit. Admins hear about every join.
 """
 import asyncio
 import logging
+from functools import partial
 from math import ceil
 
 from aiogram import Bot
@@ -17,12 +18,13 @@ from telethon.tl.functions.channels import JoinChannelRequest
 from core.database.queries import get_all_channels
 from core.keyboards.join_kb import join_keyboard
 from core.text import plural
+from core.utils.entities import cached_entity
 
 JOIN_PAUSE_SECONDS = 60
 LISTED_TITLES = 30
 NO_CHANNELS = "📭 No channels to watch yet. Add them with /add_channel."
 BOT_CHECK = ("Groups often ask new members to prove they're not a bot within a minute. Open the reading account "
-             "and pass the check, or it may be removed.")
+             "and pass the check, or the group may remove the account.")
 
 # Channels an admin approved, in the order the account joins them.
 queue: asyncio.Queue = asyncio.Queue()
@@ -61,8 +63,9 @@ async def join_next(channel, pending: asyncio.Queue, join, notify, sleep=asyncio
         await notify("⚠️ The reading account is in too many channels (Telegram allows about 500), so it stopped "
                      "joining new ones. Leave some channels and restart the bot to get live alerts from new ones.")
         return False
-    except Exception:
+    except Exception as e:
         logging.exception(f"Joining {channel} failed")
+        await notify(f"⚠️ Couldn't join {channel}: {e}. Check the chat, or remove it with /del_channel.")
         return True
 
     if joined:
@@ -85,7 +88,8 @@ def approval_request(titles: list[str]) -> str:
 async def check_channels(channels: list, get_entity, notify):
     """
     At startup: tells the admins the list is empty, or asks them about channels the account is not in.
-    A chat that cannot be opened, deleted or turned private since it was added, is logged and skipped.
+    A chat that cannot be opened, deleted or turned private since it was added, is logged and skipped,
+    and so is one that banned the account: Telegram returns it without the "left" field.
     """
     if not channels:
         await notify(NO_CHANNELS)
@@ -97,6 +101,9 @@ async def check_channels(channels: list, get_entity, notify):
             entity = await get_entity(channel)
         except Exception as e:
             logging.warning(f"{channel} could not be opened: {e}")
+            continue
+        if not hasattr(entity, "left"):
+            logging.warning(f"{channel} is not a chat the account can join; it may have banned the account")
             continue
         if entity.left:
             awaiting.append(channel)
@@ -111,7 +118,9 @@ async def run_joiner(bot: Bot, client: TelegramClient, admins: list[int]):
 
     async def join(channel):
         """The channel or group the account has just joined, or None when it is a member already."""
-        entity = await client.get_entity(channel)
+        entity = await cached_entity(client, channel)
+        if not hasattr(entity, "left"):
+            raise ValueError("it is not a chat the account can join; it may have banned the account")
         if not entity.left:
             logging.info(f"Already in {entity.title}")
             return None
@@ -128,7 +137,7 @@ async def run_joiner(bot: Bot, client: TelegramClient, admins: list[int]):
 
     # Nobody awaits this task, so an error that stops it is logged here instead of vanishing.
     try:
-        await check_channels(await get_all_channels(), client.get_entity, notify)
+        await check_channels(await get_all_channels(), partial(cached_entity, client), notify)
         while await join_next(await queue.get(), queue, join, notify):
             pass
     except Exception:

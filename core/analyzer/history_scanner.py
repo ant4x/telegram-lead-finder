@@ -10,6 +10,7 @@ from aiogram import Bot
 from dataclasses import dataclass, field
 from core.keyboards.report_details_kb import button_report_details
 from core.text import mentions, plural, post_link
+from core.utils.entities import cached_entity
 
 BATCH_DELAY_SECONDS = 3
 CHANNEL_DELAY_SECONDS = 5
@@ -44,7 +45,7 @@ async def scan_chat(client: TelegramClient, channel: str, match: Match, start_da
     """
     try:
         result = ScanResult()
-        entity = await client.get_entity(channel)
+        entity = await cached_entity(client, channel)
         if not isinstance(entity, Channel):
             logging.warning(f"{channel} is not a channel or a group, so it is not read")
             return None

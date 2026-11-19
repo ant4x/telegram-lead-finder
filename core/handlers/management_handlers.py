@@ -58,7 +58,7 @@ async def list_channels_command(message: Message):
 
     lines = [f"▪️ {escape(title)} (<code>{escape(identifier)}</code>)" for _, title, identifier in channels]
     lines.append(f"\n<b>🤙 Total: {len(channels)}</b>")
-    await send_lines(message, "<b>📋 Watched channels:</b>", lines)
+    await send_lines(message, "<b>📋 Watched channels and groups:</b>", lines)
 
 
 async def delete_channel_start(message: Message, state: FSMContext):
@@ -254,6 +254,6 @@ async def process_join(callback: CallbackQuery):
 
 async def process_join_skip(callback: CallbackQuery):
     await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.answer("OK, not joining. No live alerts will come from those channels "
-                                  "until the reading account is in them. I'll ask again after a restart.")
+    await callback.message.answer("OK, not joining. Live alerts need the reading account in the chat; "
+                                  "I'll ask again at the next restart.")
     await callback.answer()

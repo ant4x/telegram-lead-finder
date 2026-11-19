@@ -15,7 +15,8 @@ class CancelTest(unittest.IsolatedAsyncioTestCase):
         state, message = fake_state("NicheStates:waiting_for_word"), mock.AsyncMock()
         await cancel_dialog(message, state)
         state.clear.assert_awaited_once()
-        self.assertIn("Canceled", message.answer.await_args.args[0])
+        # "/cancel when you're done" ends the adding dialogs: the answer must not sound like an undo.
+        self.assertIn("Anything you added stays", message.answer.await_args.args[0])
 
     async def test_cancel_outside_a_step_still_answers(self):
         # /cancel is in the command menu, so a tap on it outside a dialog must not meet silence.

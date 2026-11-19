@@ -7,6 +7,6 @@ STATS_SECONDS = 30 * 24 * 3600
 
 
 def stats_lines(rows: list[tuple[str, int, int, int, int, int]]) -> list[str]:
-    return [f"▪️ <b>{escape(title)}</b>: {plural(alerts, 'alert')} · {replied} replied · "
-            f"{plural(not_lead, 'not lead')} · {unmarked} unmarked" + (f" · {dropped} dropped by AI" if dropped else "")
+    return [f"▪️ <b>{escape(title)}</b>: {plural(alerts, 'alert')} · {replied} I'll reply · "
+            f"{not_lead} not a lead · {unmarked} unmarked" + (f" · {dropped} dropped by AI" if dropped else "")
             for title, alerts, replied, not_lead, unmarked, dropped in rows]

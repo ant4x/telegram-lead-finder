@@ -19,6 +19,11 @@ class FakeClient:
         self.entity = entity
         self.messages = messages
         self.read = False
+        self.cached = []
+
+    async def get_input_entity(self, channel):
+        self.cached.append(channel)
+        return ("input", channel)
 
     async def get_entity(self, channel):
         return self.entity
@@ -43,6 +48,12 @@ class ScanChatTest(unittest.IsolatedAsyncioTestCase):
                                        message(1, 10, "Нужен лендинг")])
         result = await scan_chat(client, "@webchat", needs, NOW - timedelta(days=7))
         self.assertEqual(result, ScanResult(2, [("request", "https://t.me/webchat/3")]))
+
+    async def test_looks_the_chat_up_in_the_session_cache(self):
+        # A search over every watched chat must not resolve each username again: Telegram limits that hard.
+        client = FakeClient(WEB_CHAT, [])
+        await scan_chat(client, "@webchat", needs, NOW - timedelta(days=7))
+        self.assertEqual(client.cached, ["@webchat"])
 
     async def test_a_private_chat_with_a_person_is_not_read(self):
         person = User(id=7, first_name="Ann", username="ann")
