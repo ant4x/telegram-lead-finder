@@ -25,6 +25,9 @@ from core.states.analyzer_states import AnalyzeStates
 from core.handlers.niche_handlers import (add_niche_start, process_niche_name, process_niche_word,
                                           list_niches_command, delete_niche_start, process_niche_deletion)
 from core.states.niche_states import NicheStates
+from core.handlers.lead_handlers import process_lead_verdict
+from core.leads.watch import process_lead_message
+from core.leads.retention import run_purge
 from core.utils.telethon_client import client as telethon_client
 from core.database.queries import create_tables
 from core.monitoring.listener import process_new_channel_post, start_monitoring
@@ -76,6 +79,7 @@ def register_leads_steps(dp: Dispatcher, leads_user):
     dp.message.register(process_niche_word, NicheStates.waiting_for_word, F.text, leads_user)
 
     dp.callback_query.register(process_niche_deletion, F.data.startswith("del_niche"), leads_user)
+    dp.callback_query.register(process_lead_verdict, F.data.startswith("lead:"), leads_user)
 
 
 async def main():
@@ -131,6 +135,9 @@ async def main():
     handlers = []
     if "mentions" in modules:
         handlers.append(partial(process_new_channel_post, bot=bot, admins=settings.bots.admins_id))
+    if "leads" in modules:
+        handlers.append(partial(process_lead_message, bot=bot))
+        purge = asyncio.create_task(run_purge())  # the variable keeps the task alive
 
     try:
         await telethon_client.start()

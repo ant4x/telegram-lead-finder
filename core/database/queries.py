@@ -158,3 +158,43 @@ async def get_niches(owner_id: int | None = None) -> list[Niche]:
 async def delete_niche(niche_id: int, owner_id: int) -> bool:
     """Deletes the niche with its words if it belongs to the owner; False when it does not or is gone."""
     return await execute_changes("DELETE FROM niches WHERE id = ? AND owner_id = ?", (niche_id, owner_id)) > 0
+
+
+async def execute_insert(query, params) -> int:
+    """Runs an INSERT and returns the id of the new row."""
+    async with aiosqlite.connect(DB_NAME) as connection:
+        await connection.execute("PRAGMA foreign_keys = ON")
+        async with connection.cursor() as cursor:
+            await cursor.execute(query, params)
+            await connection.commit()
+            return cursor.lastrowid
+
+
+async def save_lead(owner_id: int, channel_db_id: int, message_id: int, link: str, author: str, kind: str, text: str,
+                    text_hash: str, created_at: int, ai_author: str | None = None, summary: str | None = None,
+                    verdict: str | None = None) -> int:
+    return await execute_insert(
+        "INSERT INTO leads (owner_id, channel_db_id, message_id, link, author, kind, text, text_hash, created_at,"
+        " ai_author, summary, verdict) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (owner_id, channel_db_id, message_id, link, author, kind, text, text_hash, created_at, ai_author, summary,
+         verdict))
+
+
+async def seen_recently(owner_id: int, text_hash: str, since: int) -> bool:
+    """Whether the owner has a lead with this text since the given time."""
+    row = await execute_query("SELECT 1 FROM leads WHERE owner_id = ? AND text_hash = ? AND created_at >= ? LIMIT 1",
+                              (owner_id, text_hash, since), fetchone=True)
+    return row is not None
+
+
+async def set_lead_verdict(lead_id: int, owner_id: int, verdict: str) -> bool:
+    """Marks the owner's lead; False when the lead is someone else's or gone."""
+    return await execute_changes("UPDATE leads SET verdict = ? WHERE id = ? AND owner_id = ?",
+                                 (verdict, lead_id, owner_id)) > 0
+
+
+async def purge_old_leads(before: int) -> int:
+    """Erases the text, author and links of leads older than the given time and returns how many; counts stay."""
+    return await execute_changes(
+        "UPDATE leads SET text = NULL, author = NULL, summary = NULL, link = NULL, message_id = NULL, text_hash = NULL"
+        " WHERE created_at < ? AND link IS NOT NULL", (before,))

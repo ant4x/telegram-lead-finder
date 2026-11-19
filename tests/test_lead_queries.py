@@ -1,6 +1,7 @@
 import unittest
 
-from core.database.queries import add_niche, add_niche_word, delete_niche, get_niches
+from core.database.queries import (add_channel, add_niche, add_niche_word, delete_niche, execute_query,
+                                   get_niches, purge_old_leads, save_lead, seen_recently, set_lead_verdict)
 from core.leads.rules import Niche
 from tests.db import DbTestCase
 
@@ -34,6 +35,45 @@ class NicheQueriesTest(DbTestCase):
         self.assertEqual(len(await get_niches(10)), 1)
         self.assertTrue(await delete_niche(niche_id, owner_id=10))
         self.assertEqual(await get_niches(10), [])
+
+
+DAY = 24 * 3600
+NOW = 1_700_000_000
+
+
+class LeadQueriesTest(DbTestCase):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        await add_channel(-1001, "webchat", "Web chat")
+
+    async def lead(self, created_at=NOW, owner_id=10, text_hash="h1"):
+        return await save_lead(owner_id, 1, 5, "https://t.me/webchat/5", "@ann", "request", "Нужен сайт",
+                               text_hash, created_at)
+
+    async def test_seen_recently_counts_only_the_window(self):
+        await self.lead(created_at=NOW)
+        self.assertTrue(await seen_recently(10, "h1", since=NOW - DAY))
+        self.assertFalse(await seen_recently(10, "h1", since=NOW + 1))
+        self.assertFalse(await seen_recently(20, "h1", since=NOW - DAY))
+        self.assertFalse(await seen_recently(10, "h2", since=NOW - DAY))
+
+    async def test_another_owner_cannot_mark_a_lead(self):
+        lead_id = await self.lead()
+        self.assertFalse(await set_lead_verdict(lead_id, owner_id=20, verdict="reply"))
+        self.assertEqual(await execute_query("SELECT verdict FROM leads", fetchone=True), (None,))
+        self.assertTrue(await set_lead_verdict(lead_id, owner_id=10, verdict="reply"))
+        self.assertEqual(await execute_query("SELECT verdict FROM leads", fetchone=True), ("reply",))
+
+    async def test_purge_keeps_counts_and_erases_text(self):
+        old = await self.lead(created_at=NOW - 31 * DAY)
+        await set_lead_verdict(old, 10, "not_lead")
+        new = await self.lead(created_at=NOW - DAY)
+        self.assertEqual(await purge_old_leads(before=NOW - 30 * DAY), 1)
+        query = "SELECT text, author, link, message_id, text_hash, summary, kind, verdict FROM leads WHERE id = ?"
+        self.assertEqual(await execute_query(query, (old,), fetchone=True),
+                         (None, None, None, None, None, None, "request", "not_lead"))
+        self.assertEqual(await execute_query(query, (new,), fetchone=True),
+                         ("Нужен сайт", "@ann", "https://t.me/webchat/5", 5, "h1", None, "request", None))
 
 
 if __name__ == "__main__":
