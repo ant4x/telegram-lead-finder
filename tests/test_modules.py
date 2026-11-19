@@ -15,9 +15,9 @@ class ParseModulesTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_modules(["mentions", "spam"])
 
-    def test_no_module_is_an_error(self):
-        with self.assertRaises(ValueError):
-            parse_modules([])
+    def test_an_empty_value_means_mentions(self):
+        self.assertEqual(parse_modules([]), frozenset({"mentions"}))
+        self.assertEqual(parse_modules([" "]), frozenset({"mentions"}))
 
 
 class StartTextTest(unittest.TestCase):

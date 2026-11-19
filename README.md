@@ -17,7 +17,7 @@ Built in June 2025 to measure how widely crypto projects were promoted ("shilled
 ### Lead finder
 
 - **Niches.** A niche is a topic with the words people use for it: "Websites and SEO" with `сайт*`, `SEO`, `Next.js`; "Repair" with `ремонт*`, `сантехник*`. It works for any trade.
-- **Three kinds of leads.** A request ("нужен сайт", "looking for an SEO specialist"), a problem ("сайт не открывается", "our website is broken") and a vacancy ("ищем Next.js-разработчика в штат"). People offering their own services or looking for work are left out.
+- **Three kinds of leads.** A request ("нужен сайт", "looking for an SEO specialist"), a problem ("сайт не открывается", "our website is broken") and a vacancy ("ищем Next.js-разработчика в штат"). Typical phrases of people offering their own services or looking for work, such as "наша студия" or "ищу работу", rule a message out; the rules catch words, not intent, so some ads still come through, and the AI check is there for those.
 - **Alerts.** Each alert names the kind, the niche, the chat and the author, quotes the message and links to it and, when the author has a username, to the author. Two buttons, "I'll reply" and "Not a lead", record what you made of it. The same text posted in several chats alerts once a day.
 - **Check a chat first** (`/check_chat @chat [days]`). Reads the last 7 days, or up to 30, without joining, and shows how many requests, problems and vacancies your niches would have caught, with examples. It shows whether a chat is worth adding before the reading account joins it.
 - **Settings** (`/lead_settings`). Turn each kind on or off: problems are the noisiest kind in professional chats, where colleagues ask each other.
@@ -68,7 +68,7 @@ The reading account is a real Telegram account, so the bot treats it with care:
 
 The lead finder stores the messages it alerts about, so it handles them carefully:
 
-- After 30 days a lead keeps only its kind, chat, date and your answer: the text, the author and the links are erased at startup and once a day.
+- After 30 days a lead keeps only its kind, chat, date, your answer and the AI's guess of who wrote it (a client, a colleague...): the text, the author, the summary and the links are erased at startup and once a day.
 - With the AI check on, the messages the rules found, never the others, go to the model's provider, cut to 1500 characters. On OpenRouter, turn off providers that may train on your data and turn on zero data retention in the privacy settings.
 - Logs name what failed, never the text of a message or the API key.
 - At most 300 AI checks a day per user, so a broken rule cannot run up a bill. A failed check never loses a lead: the alert comes by the rules, with a note.
@@ -124,7 +124,7 @@ You need Python 3.10 or newer, a Telegram account to read the chats and a bot to
 python -m unittest discover -s tests -t .
 ```
 
-129 tests cover the parts that do not need Telegram: keyword matching, the lead rules on a corpus of sample messages, alerts and their escaping, repeated texts, the 30-day erasing, niches, settings and statistics on a fresh database, the AI answer parsing with its failures and daily cap, the chat check, the history search, the daily search limit, the startup check of the chat list and the joining logic. Fakes stand in for Telegram and the AI.
+133 tests cover the parts that do not need Telegram: keyword matching, the lead rules on a corpus of sample messages, alerts and their escaping, repeated texts, the 30-day erasing, niches, settings and statistics on a fresh database, the AI answer parsing with its failures and daily cap, the chat check, the history search, the daily search limit, the startup check of the chat list and the joining logic. Fakes stand in for Telegram and the AI.
 
 ## Limits
 

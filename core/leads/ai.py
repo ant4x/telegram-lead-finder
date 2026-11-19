@@ -17,6 +17,7 @@ from core.leads.rules import KINDS, Niche
 AUTHORS = ("client", "peer", "seller", "job_seeker", "unknown")
 AUTHOR_LABELS = {"client": "client", "peer": "colleague", "seller": "seller", "job_seeker": "job seeker",
                  "unknown": "unknown"}
+DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 TIMEOUT_SECONDS = 20
 INPUT_LIMIT = 1500
 SUMMARY_LIMIT = 200
@@ -93,7 +94,8 @@ async def check_lead(config: AiConfig, text: str, niches: list[Niche], kind: str
                "response_format": {"type": "json_object"}}
     headers = {"Authorization": f"Bearer {config.api_key}"}
     try:
-        answer = await post(f"{config.base_url.rstrip('/')}/chat/completions", headers, payload, TIMEOUT_SECONDS)
+        base_url = (config.base_url or DEFAULT_BASE_URL).rstrip("/")
+        answer = await post(f"{base_url}/chat/completions", headers, payload, TIMEOUT_SECONDS)
         verdict = parse_verdict(answer["choices"][0]["message"]["content"])
     except (asyncio.TimeoutError, TimeoutError, aiohttp.ClientError, KeyError, IndexError, ValueError,
             TypeError, AttributeError) as e:

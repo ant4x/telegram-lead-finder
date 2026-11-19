@@ -48,6 +48,11 @@ class CheckLeadTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("x" * (INPUT_LIMIT + 1), sent)
         self.assertIn("Websites and SEO", sent)
 
+    async def test_an_empty_base_url_means_openrouter(self):
+        post = FakePost(answer(GOOD))
+        await check_lead(AiConfig("sk-test-secret", "test/model", ""), "Нужен сайт", [WEB], "request", post=post)
+        self.assertEqual(post.calls[0][0], "https://openrouter.ai/api/v1/chat/completions")
+
     async def test_timeout_gives_none_and_logs_no_text(self):
         with self.assertLogs(level="WARNING") as logs:
             self.assertIsNone(await check_lead(CONFIG, SECRET_TEXT, [WEB], "request",
