@@ -7,6 +7,7 @@ from aiogram.enums import ChatType
 from aiogram.types import BotCommand
 from aiogram.filters.state import StateFilter
 from core.settings import settings
+from core.access import can_use_leads
 from core.commands import enabled_commands
 from core.handlers.basic import start, filter_text, admins_only
 from core.handlers.management_handlers import (
@@ -21,6 +22,9 @@ from core.handlers.analyzer_handlers import (start_dialog_analyzer, process_proj
                                              process_days_selection, process_confirmation,
                                              process_report_details)
 from core.states.analyzer_states import AnalyzeStates
+from core.handlers.niche_handlers import (add_niche_start, process_niche_name, process_niche_word,
+                                          list_niches_command, delete_niche_start, process_niche_deletion)
+from core.states.niche_states import NicheStates
 from core.utils.telethon_client import client as telethon_client
 from core.database.queries import create_tables
 from core.monitoring.listener import process_new_channel_post, start_monitoring
@@ -59,6 +63,21 @@ def register_mentions_steps(dp: Dispatcher, admin):
     )
 
 
+def register_leads_commands(dp: Dispatcher, leads_user):
+    """The lead finder's commands, for the users can_use_leads lets in."""
+    dp.message.register(add_niche_start, Command(commands="add_niche"), leads_user)
+    dp.message.register(list_niches_command, Command(commands="list_niches"), leads_user)
+    dp.message.register(delete_niche_start, Command(commands="del_niche"), leads_user)
+
+
+def register_leads_steps(dp: Dispatcher, leads_user):
+    """The lead finder's dialog steps and buttons."""
+    dp.message.register(process_niche_name, NicheStates.waiting_for_name, F.text, leads_user)
+    dp.message.register(process_niche_word, NicheStates.waiting_for_word, F.text, leads_user)
+
+    dp.callback_query.register(process_niche_deletion, F.data.startswith("del_niche"), leads_user)
+
+
 async def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -77,6 +96,7 @@ async def main():
     # The history search is for everyone, within the limits in core/limits.py. Everything else is for admins,
     # checked on every message and button press, because anyone can send a bot any button data.
     admin = F.from_user.id.in_(set(settings.bots.admins_id))
+    leads_user = F.from_user.id.func(partial(can_use_leads, admins=frozenset(settings.bots.admins_id)))
     admin_commands = [command.name for command in enabled_commands(modules) if command.admin]
 
     dp.message.register(start, Command(commands="start"))
@@ -86,6 +106,8 @@ async def main():
     dp.message.register(list_channels_command, Command(commands="list_channels"), admin)
     if "mentions" in modules:
         register_mentions_commands(dp, admin)
+    if "leads" in modules:
+        register_leads_commands(dp, leads_user)
     dp.message.register(admins_only, Command(*admin_commands))
 
     dp.message.register(process_channel_identifier, AddChannelStates.waiting_for_identifier, F.text, admin)
@@ -99,6 +121,8 @@ async def main():
     dp.callback_query.register(process_join_skip, F.data == "join_skip", admin)
     if "mentions" in modules:
         register_mentions_steps(dp, admin)
+    if "leads" in modules:
+        register_leads_steps(dp, leads_user)
 
     # Anything else in a private chat outside a dialog: text, unknown commands, photos, stickers.
     # In a group the bot stays silent instead of answering every message.

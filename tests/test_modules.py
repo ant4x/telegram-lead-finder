@@ -29,6 +29,8 @@ class StartTextTest(unittest.TestCase):
         self.assertNotIn("/analyze", leads)
         self.assertNotIn("/add_project", leads)
         self.assertIn("/add_channel", leads)
+        self.assertIn("/add_niche", leads)
+        self.assertNotIn("/add_niche", mentions)
 
     def test_start_escapes_the_name(self):
         self.assertIn("&lt;b&gt;", start_text("<b>", frozenset({"mentions"})))

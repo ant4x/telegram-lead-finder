@@ -25,6 +25,9 @@ COMMANDS = (
     Command("add_project", "🧐", "Watch a project", True, "mentions"),
     Command("del_project", "😒", "Stop watching a project", True, "mentions"),
     Command("list_projects", "📋", "List watched projects", True, "mentions"),
+    Command("add_niche", "🎯", "Add a niche of leads", True, "leads"),
+    Command("list_niches", "📋", "List your niches", True, "leads"),
+    Command("del_niche", "🗑", "Remove a niche", True, "leads"),
 )
 
 TAGLINES = {
