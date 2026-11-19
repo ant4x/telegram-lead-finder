@@ -1,6 +1,6 @@
 """
-How much people who are not admins may use the history search: it reads channels through the owner's Telegram
-account, so strangers get a few searches a day over a short period. Admins have no limits.
+How much people who are not admins may use the history search: it reads channels through the reading account,
+a real Telegram account, so strangers get a few searches a day over a short period. Admins have no limits.
 """
 from datetime import date
 

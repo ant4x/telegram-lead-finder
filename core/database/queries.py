@@ -112,17 +112,8 @@ async def delete_project_by_id(db_id: int):
 
 
 async def save_post(channel_db_id: int, message_id: int, link: str, post_date, text: str) -> int:
-    query = """
-        INSERT INTO posts (channel_db_id, message_id, link, post_date, text)
-        VALUES (?, ?, ?, ?, ?)
-    """
-
-    async with aiosqlite.connect(DB_NAME) as connection:
-        await connection.execute("PRAGMA foreign_keys = ON")
-        async with connection.cursor() as cursor:
-            await cursor.execute(query, (channel_db_id, message_id, link, post_date, text))
-            await connection.commit()
-            return cursor.lastrowid
+    return await execute_insert("INSERT INTO posts (channel_db_id, message_id, link, post_date, text)"
+                                " VALUES (?, ?, ?, ?, ?)", (channel_db_id, message_id, link, post_date, text))
 
 
 async def log_mention(post_db_id: int, project_db_id: int):

@@ -17,7 +17,7 @@ CHANNEL_DELAY_SECONDS = 5
 # A label for a message that matches, such as "mention" or a kind of lead, or None.
 Match = Callable[[str], str | None]
 
-# The running search: one at a time for /analyze and /check_chat, because both read through the owner's account.
+# The running search: one at a time for /analyze and /check_chat, because both read through the reading account.
 # Keeping the task here also keeps it alive: asyncio holds only a weak reference to tasks.
 scan_task: asyncio.Task | None = None
 
