@@ -10,6 +10,7 @@ from core.settings import settings
 from core.access import can_use_leads
 from core.commands import enabled_commands
 from core.handlers.basic import start, filter_text, admins_only
+from core.handlers.errors import UNCHANGED, unchanged_message
 from core.handlers.management_handlers import (
     add_channel_start, process_channel_identifier, cancel_dialog, list_channels_command,
     delete_channel_start, process_delete_choice, process_delete_from_list,
@@ -136,6 +137,7 @@ async def main():
     # Anything else in a private chat outside a dialog: text, unknown commands, photos, stickers.
     # In a group the bot stays silent instead of answering every message.
     dp.message.register(filter_text, StateFilter(None), F.chat.type == ChatType.PRIVATE)
+    dp.errors.register(unchanged_message, UNCHANGED)
 
     handlers = []
     if "mentions" in modules:
