@@ -30,6 +30,10 @@ CORPUS: list[tuple[str, str | None]] = [
     ("Ищем SEO-специалиста в команду, оклад 150к", "vacancy"),
     # A request phrase and a vacancy phrase: the request comes first.
     ("В команду нужен верстальщик сайтов, оклад 120к", "request"),
+    # "ищем" with a contractor is an order for a project, not a job.
+    ("Ищем подрядчика на разработку сайта", "request"),
+    ("Ищем фрилансера: доработать интернет-магазин на WordPress", "request"),
+    ("We're hiring a contractor to rebuild our website", "request"),
     # Not leads
     ("#резюме Ищу работу frontend-разработчиком, делаю сайты на React", None),
     ("Делаю сайты под ключ, наша студия даёт скидку 20%", None),

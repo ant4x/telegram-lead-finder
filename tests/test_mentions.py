@@ -13,6 +13,10 @@ class MentionsTest(unittest.TestCase):
     def test_finds_a_phrase(self):
         self.assertTrue(mentions("New Acme Wallet is out", "acme wallet"))
 
+    def test_a_phrase_matches_across_any_spaces(self):
+        self.assertTrue(mentions("Кто\nсделает лендинг?", "кто сделает"))
+        self.assertTrue(mentions("кто  возьмётся за сайт", "кто возьмётся"))
+
     def test_finds_the_word_next_to_punctuation(self):
         self.assertTrue(mentions("#ton, $ton!", "ton"))
 

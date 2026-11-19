@@ -23,10 +23,12 @@ def mentions(text: str, keyword: str) -> bool:
     """
     Whether the text names the keyword as a whole word or phrase, in any case: "ton" is found in "TON is up",
     not in "button". Inflected forms are other words, so "сайт" does not find "сайта". A keyword ending in *
-    finds every word that starts with it: "сайт*" finds "сайт", "сайта" and "сайтом".
+    finds every word that starts with it: "сайт*" finds "сайт", "сайта" and "сайтом". The words of a phrase
+    may be apart by any spaces or a line break.
     """
     whole_word = not keyword.endswith("*")
-    pattern = rf"(?<!\w){re.escape(keyword.rstrip('*'))}" + (r"(?!\w)" if whole_word else "")
+    words = r"\s+".join(re.escape(word) for word in keyword.rstrip("*").split())
+    pattern = rf"(?<!\w){words}" + (r"(?!\w)" if whole_word else "")
     return re.search(pattern, text, re.IGNORECASE) is not None
 
 

@@ -5,8 +5,8 @@ word that starts with it. They hardly depend on the niche; tests/lead_corpus.py 
 
 REQUEST = (
     "ищу", "нужен", "нужна", "нужны", "кто сделает", "кто может", "кто возьмется", "кто возьмётся",
-    "посоветуйте", "порекомендуйте", "есть задача", "тз", "бюджет",
-    "looking for", "need a", "need an", "who can", "recommend*",
+    "посоветуйте", "порекомендуйте", "есть задача", "тз", "бюджет", "подрядчик*", "исполнител*", "фрилансер*",
+    "looking for", "need a", "need an", "who can", "recommend*", "contractor*", "freelancer*",
 )
 
 PROBLEM = (
