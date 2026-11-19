@@ -34,6 +34,8 @@ CORPUS: list[tuple[str, str | None]] = [
     ("Ищем подрядчика на разработку сайта", "request"),
     ("Ищем фрилансера: доработать интернет-магазин на WordPress", "request"),
     ("We're hiring a contractor to rebuild our website", "request"),
+    # An executive director is a job, though the word starts like "исполнитель" (performer).
+    ("Ищем исполнительного директора для сети сайтов", "vacancy"),
     # Not leads
     ("#резюме Ищу работу frontend-разработчиком, делаю сайты на React", None),
     ("Делаю сайты под ключ, наша студия даёт скидку 20%", None),
