@@ -1,11 +1,11 @@
 # Shillometer
 
-A Telegram bot that watches Telegram channels and groups. It has two modules, and you choose which to run:
+Shillometer reads the Telegram chats you choose and tells you when someone asks for what you offer, or when a project you follow is mentioned. It reads through a regular Telegram account, the reading account, and never writes to anyone: you decide and reply from your own account. Two modules, run either or both:
 
-- **Mentions** (the Shillometer): searches the channels' recent history for a project on request and sends an alert as soon as a new post mentions a watched project.
-- **Lead finder**: notices people who ask for what you offer, describe a problem you can fix or hire for it, and tells you. The bot never answers anyone: you decide and reply from your own account.
+- **Lead finder**: notices people who ask for what you offer, describe a problem you can fix or hire for it, and sends you an alert.
+- **Mentions** (the Shillometer): searches the chats' recent history for a project on request and alerts you as soon as a new post mentions a watched project.
 
-Built in June 2025 to measure how widely crypto projects were promoted ("shilled") across Telegram channels. The lead finder was added in November 2026 on the same engine.
+Built in June 2025 to measure the share of voice of crypto projects across Telegram channels: how many channels promoted ("shilled") each one. The lead finder was added in November 2026 on the same engine. Here a chat means a channel or a group.
 
 A lead alert as it arrives in the bot's chat (the message and the names are invented):
 
@@ -23,20 +23,20 @@ Open the message · Message the author
 
 ## What it does
 
-### Mentions
-
-- **History search** (`/analyze`, open to anyone). Send a project name and pick a period. The bot reads every watched channel for that period and replies with how many posts it checked, how many mention the project and in which channels, with a link to every post.
-- **Live alerts** (admins). Admins keep a list of projects. When a new post in a watched channel mentions one, the admins get the post's opening lines and a link to it.
-
 ### Lead finder
 
-- **Niches.** A niche is a topic with the words people use for it: "Websites and SEO" with `сайт*` (website), `SEO`, `Next.js`; "Repair" with `ремонт*` (repair), `сантехник*` (plumber). It works for any trade, in Russian and English.
-- **Three kinds of leads.** A request: "нужен сайт" (need a website), "looking for an SEO specialist". A problem: "сайт не открывается" (the site won't open), "our website is broken". A vacancy: "ищем Next.js-разработчика в штат" (hiring a Next.js developer). Phrases of people selling their own services or looking for work, such as "наша студия" (our studio) or "ищу работу" (looking for a job), rule a message out. The rules catch words, not intent, so some ads still come through; the AI check is there for those.
+- **Niches.** A niche is a topic with the words people use for it: "Websites and SEO" with `сайт*` (website), `website*`, `SEO`, `Next.js`; "Repair" with `ремонт*` (repair), `сантехник*` (plumber). It works for any trade, in Russian and English.
+- **Three kinds of leads.** A request (someone asks for what you do), a problem (someone has a problem you can fix) and a vacancy (a company hires for it); the table under [How matching works](#how-matching-works) shows typical phrases. Messages from people selling their own services or looking for work are ruled out. The rules catch words, not intent, so some ads still come through; the AI check is there for those.
 - **Alerts.** Each alert names the kind, the niche, the chat and the author, quotes the message and links to it and, when the author has a username, to the author. Two buttons, "I'll reply" and "Not a lead", record what you made of it. The same text posted in several chats alerts once a day.
-- **Check a chat first** (`/check_chat @chat [days]`). Reads the last 7 days, or up to 30, without joining, and shows how many requests, problems and vacancies your niches would have caught, with examples. It shows whether a chat is worth adding before the reading account joins it.
-- **Settings** (`/lead_settings`). Turn each kind on or off: problems are the noisiest kind in professional chats, where colleagues ask each other.
-- **Statistics** (`/lead_stats`). Per chat for 30 days: alerts, "I'll reply", "Not a lead", unmarked. It shows which chats bring leads and which only make noise.
-- **Optional AI check.** With an API key, a model reads only the messages the rules found and notes who writes (a client, a colleague, a seller, a job seeker) and what they need. In the labels mode every lead still comes, with the note; in the filter mode only what the model confirms comes.
+- **Check a chat first** (`/check_chat @chat [days]`). Reads the last 7 days, or up to 30, without joining and by the rules alone, and shows how many requests, problems and vacancies your niches would have caught, with up to 5 links. It shows whether a chat is worth adding before the reading account joins it.
+- **Settings** (`/lead_settings`). Turn each kind on or off and pick the AI mode. Problems are the noisiest kind in professional chats, where colleagues ask each other.
+- **Statistics** (`/lead_stats`). Per chat for 30 days: alerts, "I'll reply", "Not a lead", unmarked and, with the AI filter, how many it held back. It shows which chats bring leads and which only make noise.
+- **Optional AI check.** With `AI_API_KEY` and `AI_MODEL` set, a model reads only the messages the rules found and notes who writes (a client, a colleague, a seller, a job seeker) and what they need. Labels is the default mode: every lead still comes, with the note. In the filter mode only what the model confirms comes; `/lead_settings` switches modes or turns the check off.
+
+### Mentions
+
+- **History search** (`/analyze`, open to anyone). Send a project name and pick a period. The bot reads every watched chat for that period and replies with how many posts it checked, how many mention the project and in which chats, with a link to every post.
+- **Live alerts** (admins). Admins keep a list of projects. When a new post in a watched chat mentions one, the admins get the post's opening lines and a link to it.
 
 Both modules share the list of watched channels and groups, which admins edit with bot commands; no restart is needed.
 
@@ -44,27 +44,32 @@ Both modules share the list of watched channels and groups, which admins edit wi
 
 Words match whole, in any case: `ton` finds "TON is up" but not "button". A word ending in `*` matches every word that starts with it: `сайт*` finds "сайт", "сайта" and "сайтом", which covers the forms of a Russian word.
 
-A message is a lead when it has a word of one of your niches, a phrase of one of the kinds ("ищу" looking for, "нужен" need, "кто сделает" who will make, "looking for", "не работает" doesn't work, "вакансия" vacancy, "hiring"...) and none of the exclusions ("#резюме" resume, "ищу работу", "наша студия", "#помогу" I can help...). The words of a phrase may be split by a line break. Job board hashtags such as `#вакансия` and `#ищу` decide the kind outright. A message with phrases of two kinds gets the first of request, vacancy, problem: "ищем подрядчика" (looking for a contractor) is an order, not a job. The phrases are in `core/leads/phrases.py`; `tests/lead_corpus.py` holds invented sample messages with the answer the rules must give.
+A message is a lead when it has a word of one of your niches, a phrase of one of the kinds and none of the exclusions:
+
+| Kind | English phrases | Russian phrases |
+|---|---|---|
+| Request | looking for, need a, who can | ищу (looking for), нужен (need), кто сделает (who will make), подрядчик (contractor) |
+| Problem | doesn't work, broken, error | не работает (doesn't work), не открывается (won't open), ошибка (error) |
+| Vacancy | hiring, salary, full-time | вакансия (vacancy), в штат (on staff), ищем (we're looking for) |
+| Ruled out | looking for a job, open to work, #resume | ищу работу (looking for a job), наша студия (our studio), #помогу (I can help) |
+
+The words of a phrase may be split by a line break. Job board hashtags such as `#вакансия` and `#ищу` decide the kind outright. A message with phrases of two kinds gets the first of request, vacancy, problem, so "ищем подрядчика" (looking for a contractor) is an order, not a job. The full lists are in `core/leads/phrases.py`; `tests/lead_corpus.py` holds invented sample messages with the answer the rules must give.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-  U[You in Telegram] --> B[Bot: aiogram 3]
-  R[Reading account: Telethon] --> C[Watched channels and groups]
-  C -->|new messages| L[Listener]
-  L --> M[Mentions]
-  L --> F[Lead finder: rules]
-  F -. only what the rules found .-> A[AI model, optional]
-  M --> D[(SQLite)]
-  F --> D
-  M --> B
-  F --> B
-  B --> S[History search and chat check]
-  S --> R
+  C[Watched chats] -->|new messages| R[Reading account: Telethon]
+  R --> F[Lead finder: rules] & M[Mentions]
+  F -. only rule matches .-> A[AI model, optional]
+  F & M --> D[(SQLite)]
+  F & M -->|alerts| B[Bot: aiogram 3]
+  B -->|alerts| U[You]
+  U -->|commands| B
+  B -->|history search, chat check| R
 ```
 
-One process runs two Telegram clients. The bot is the interface you talk to. A regular Telegram account, the reading account, reads the chats through the official API, because a bot cannot read channel history or get messages from chats where it is not an admin. One listener hands every new message to the enabled modules; a module that fails does not stop the other. The lead rules need no database and no network, so most messages are dropped before anything else runs.
+One process runs two Telegram clients. The bot is the interface you talk to. A regular Telegram account, the reading account, reads the chats through the official API, because a bot cannot read history and sees a chat only after the chat adds it, while an account can join any public chat. One listener hands every new message to the enabled modules; a module that fails does not stop the other. The lead rules need no database and no network, so most messages are dropped before anything else runs.
 
 ## Keeping the reading account safe
 
@@ -72,20 +77,21 @@ The reading account is a real Telegram account, so the bot treats it with care:
 
 - **It never writes.** The bot does not post, reply or message anyone from the reading account. Alerts go to you, and you answer from your own account.
 - **It asks before joining.** Telegram sends new messages only to members, so live alerts need the account to be in a chat. The bot never joins on its own: at startup it lists the chats the account is not in and asks the admins, and `/add_channel` asks about each new one. After an admin says yes, it joins one chat a minute and reports each join. After joining a group it reminds you to pass the "I'm not a bot" check many groups ask for, and a chat that admits members by request gets a request.
-- **It respects Telegram's limits.** Telegram publishes no numbers for them. When Telegram asks to wait, joining waits it out before the next try instead of retrying at once, a search skips the chat, and joining stops at the limit of about 500 chats.
+- **It respects Telegram's limits.** Telegram publishes no numbers for them. Pauses of up to a minute are waited out on the spot; on a longer one joining waits the whole pause and tries again, and a search skips the chat. Chats are looked up in the session's cache, so usernames are not resolved again and again, and joining stops at Telegram's cap of about 500 chats.
 - **It never leaves a chat.** Removing a chat from the list keeps the account in it, so the bot cannot unsubscribe the owner from chats they read.
-- **Searches are rationed.** Anyone can search three times a day over up to 30 days; admins have no limit and can go back 180 days. One search or chat check runs at a time, with pauses between chats. The search reads channels and groups only, never the account's private chats.
+- **Searches are rationed.** Anyone can search three times a day over up to 30 days; admins have no limit and can go back 180 days. One search or chat check runs at a time, with pauses between chats. The search reads channels and groups only, never the account's personal conversations.
 - **Rights are checked on every step.** Every admin command, dialog step and button checks the sender, because anyone can send a bot any button data. Niches, settings and leads belong to the user who made them, and only that user can change them.
-- **The session stays local.** The session file gives full access to the account. It is kept out of git, and the session can be ended in Telegram under Settings, Devices. A separate Telegram account for reading is safer, and on a server it is a must: you still answer leads from your own.
+- **The session stays local.** The session file gives full access to the account. It is kept out of git, and the session can be ended in Telegram under Settings, Devices. Use a separate account for reading, and on a server always; you still answer leads from your own.
 
 ## What people wrote
 
-The lead finder stores the messages it alerts about, so it handles them carefully:
+The bot stores what it finds, so it handles it carefully:
 
-- After 30 days a lead keeps only its kind, chat, date, your answer and the AI's guess of who wrote it (a client, a colleague...): the text, the author, the summary and the links are erased at startup and once a day.
-- With the AI check on, the messages the rules found, never the others, go to the model's provider, cut to 1500 characters. On OpenRouter, turn off providers that may train on your data and turn on zero data retention in the privacy settings.
+- The lead finder saves every lead the rules find, alerted or held back by the AI filter. After 30 days a lead keeps only its kind, chat, date, your answer and the AI's guess of who wrote it (a client, a colleague...): the text, the author, the summary and the links are erased and overwritten in the database file, at startup and once a day.
+- The mentions module keeps the text and link of every post that names a watched project, with no time limit. Removing a chat deletes its posts and leads.
+- With the AI check on, the provider gets the text of each message the rules found (cut to 1500 characters), your niches' names and words, and the kind the rules picked; never the author, the chat or other messages. On OpenRouter, turn off providers that may train on your data and turn on zero data retention in the privacy settings.
 - Logs name what failed, never the text of a message or the API key.
-- At most 300 AI checks a day per user, so a broken rule cannot run up a bill. A failed check never loses a lead: the alert comes by the rules, with a note.
+- At most 300 AI checks a day per admin, so a broken rule cannot run up a bill. A failed check never loses a lead: the alert comes by the rules, with a note.
 
 ## Run it yourself
 
@@ -111,8 +117,8 @@ You need Python 3.10 or newer, a Telegram account to read the chats and a bot to
    | `ADMINS_ID` | yes | Admins' Telegram user IDs, separated by commas |
    | `API_ID`, `API_HASH` | yes | The reading account's app from my.telegram.org |
    | `MODULES` | no | `mentions`, `leads` or `mentions,leads`; `mentions` when empty |
-   | `AI_API_KEY` | no | A key for an OpenAI-compatible API, for the AI check of leads |
-   | `AI_MODEL` | no | The model to use, for example one from [OpenRouter's list](https://openrouter.ai/models) |
+   | `AI_API_KEY` | for the AI check | A key for an OpenAI-compatible API |
+   | `AI_MODEL` | for the AI check | The model to use, for example one from [OpenRouter's list](https://openrouter.ai/models) |
    | `AI_BASE_URL` | no | The API address; `https://openrouter.ai/api/v1` when empty |
 
 5. Run `python main.py`. At the first prompt, enter the reading account's **phone number**, not the bot token. The login code arrives in the Telegram app, in the chat with "Telegram", not by SMS. Telegram may then ask the account to confirm the new login.
@@ -138,12 +144,12 @@ You need Python 3.10 or newer, a Telegram account to read the chats and a bot to
 python -m unittest discover -s tests -t .
 ```
 
-141 tests cover the parts that do not need Telegram: keyword matching, the lead rules on a corpus of sample messages, alerts and their escaping, repeated texts arriving at once, the 30-day erasing, niches, settings and statistics on a fresh database, the AI answer parsing with its failures and daily cap, the chat check, the history search, the daily search limit, the startup check of the chat list with a chat that cannot be opened, the joining logic and a second tap on a button. Fakes stand in for Telegram and the AI.
+153 tests, with fakes for Telegram and the AI, cover the lead rules on a corpus of sample messages, keyword matching, alerts and their escaping, repeats, the 30-day erasing, the database queries, the AI answers, failures and daily cap, the chat check and the history search, the limits, joining chats and the dialog steps that need no Telegram.
 
 ## Limits
 
 - Matching is by words, not meaning; other forms of a word need `*`. The AI check helps with meaning but is optional.
-- Live alerts come only from chats the reading account is in. Basic (small, old-style) groups and private chats joined by invite link are not supported.
+- Live alerts come only from chats the reading account is in. Basic (small, old-style) groups are not supported. The bot cannot join a private chat itself: join it with the reading account first, then add it by its invite link or ID.
 - A link to a message in a chat without a public username opens only for its members.
 - Edited messages are not checked again.
 - Search results and the daily counters are kept in memory until the bot restarts, and one search runs at a time.
