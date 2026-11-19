@@ -1,4 +1,5 @@
 import time
+from dataclasses import replace
 from html import escape
 
 from aiogram import Bot
@@ -12,9 +13,10 @@ from core.handlers.analyzer_handlers import ANOTHER_SEARCH
 from core.keyboards.lead_kb import marked_keyboard
 from core.keyboards.lead_settings_kb import lead_settings_keyboard
 from core.leads.check import USAGE, parse_check_args, run_check
-from core.leads.preferences import settings_text, toggle_kind
+from core.leads.preferences import AI_MODES, settings_text, toggle_kind
 from core.leads.rules import KINDS
 from core.leads.stats import STATS_SECONDS, stats_lines
+from core.settings import settings as bot_settings
 from core.text import plural
 from core.utils.messages import send_lines
 from core.utils.telethon_client import client as telethon_client
@@ -43,21 +45,28 @@ async def process_lead_verdict(callback: CallbackQuery):
 
 
 async def lead_settings_command(message: Message):
-    settings = await get_lead_settings(message.from_user.id)
-    await message.answer(settings_text(settings), reply_markup=lead_settings_keyboard(settings), parse_mode="HTML")
+    prefs = await get_lead_settings(message.from_user.id)
+    ai_available = bot_settings.ai.enabled
+    await message.answer(settings_text(prefs, ai_available), reply_markup=lead_settings_keyboard(prefs, ai_available),
+                         parse_mode="HTML")
 
 
 async def process_lead_setting(callback: CallbackQuery):
-    """A tap on a kind turns it on or off and redraws the settings."""
+    """A tap on a kind turns it on or off, a tap on an AI mode picks it; the settings are redrawn."""
     _, field, value = (callback.data.split(":") + ["", ""])[:3]
-    if field != "kind" or value not in KINDS:
+    if not (field == "kind" and value in KINDS or field == "ai" and value in AI_MODES):
         await callback.answer("❌ Something went wrong with that button.", show_alert=True)
         return
 
-    settings = toggle_kind(await get_lead_settings(callback.from_user.id), value)
-    await save_lead_settings(callback.from_user.id, settings)
-    await callback.message.edit_text(settings_text(settings), reply_markup=lead_settings_keyboard(settings),
-                                     parse_mode="HTML")
+    prefs = await get_lead_settings(callback.from_user.id)
+    if field == "ai" and value == prefs.ai_mode:
+        await callback.answer()  # the mode is on already, and Telegram refuses an edit that changes nothing
+        return
+    prefs = toggle_kind(prefs, value) if field == "kind" else replace(prefs, ai_mode=value)
+    await save_lead_settings(callback.from_user.id, prefs)
+    ai_available = bot_settings.ai.enabled
+    await callback.message.edit_text(settings_text(prefs, ai_available),
+                                     reply_markup=lead_settings_keyboard(prefs, ai_available), parse_mode="HTML")
     await callback.answer()
 
 

@@ -141,7 +141,7 @@ async def main():
     if "mentions" in modules:
         handlers.append(partial(process_new_channel_post, bot=bot, admins=settings.bots.admins_id))
     if "leads" in modules:
-        handlers.append(partial(process_lead_message, bot=bot))
+        handlers.append(partial(process_lead_message, bot=bot, ai=settings.ai))
         purge = asyncio.create_task(run_purge())  # the variable keeps the task alive
 
     try:

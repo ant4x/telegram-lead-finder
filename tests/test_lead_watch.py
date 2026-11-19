@@ -1,12 +1,17 @@
 import unittest
 from types import SimpleNamespace
 
-from core.database.queries import add_channel, add_niche, add_niche_word, save_lead_settings
+from core.database.queries import add_channel, add_niche, add_niche_word, execute_query, save_lead_settings
+from core.leads.ai import AiConfig, AiVerdict
 from core.leads.preferences import LeadSettings
+from core.leads.rules import KINDS
 from core.leads.watch import process_lead_message
+from core.limits import DailyLimit
 from tests.db import DbTestCase
 
 NOW = 1_700_000_000
+NO_AI = AiConfig("", "", "https://ai.example/api/v1")
+AI = AiConfig("sk-test", "test/model", "https://ai.example/api/v1")
 CHAT = SimpleNamespace(title="Web chat", username="webchat", id=1001)
 ANN = SimpleNamespace(bot=False, username="ann", first_name="Ann", last_name=None)
 
@@ -38,9 +43,18 @@ class LeadWatchTest(DbTestCase):
         await add_niche_word(await add_niche(10, "Websites"), "сайт*")
         await add_niche_word(await add_niche(20, "Repair"), "ремонт*")
         self.bot = FakeBot()
+        self.ai = NO_AI
+        self.verdict = None
+        self.checks = []
+        self.limit = DailyLimit(300)
+
+    async def check(self, config, text, niches, kind):
+        """Stands in for the AI: records the call and gives the verdict the test set."""
+        self.checks.append(text)
+        return self.verdict
 
     async def handle(self, event, at=NOW):
-        await process_lead_message(event, self.bot, now=lambda: at)
+        await process_lead_message(event, self.bot, ai=self.ai, check=self.check, limit=self.limit, now=lambda: at)
 
     async def test_the_niche_owner_gets_the_alert_and_no_one_else(self):
         await self.handle(message("Нужен сайт для студии йоги"))
@@ -84,3 +98,57 @@ class LeadWatchTest(DbTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AiCheckTest(LeadWatchTest):
+    """The same listener with the AI check: the owner's mode decides what the AI's answer changes."""
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.ai = AI
+
+    async def use_mode(self, mode):
+        await save_lead_settings(10, LeadSettings(frozenset(KINDS), mode))
+
+    async def test_labels_mode_adds_the_ai_line(self):
+        self.verdict = AiVerdict(True, "request", "client", "wants a studio site")
+        await self.handle(message("Нужен сайт для студии"))
+        self.assertIn("🤖 AI: client · wants a studio site", self.bot.sent[0][1])
+
+    async def test_filter_mode_keeps_rejected_leads_out_of_alerts(self):
+        await self.use_mode("filter")
+        self.verdict = AiVerdict(False, None, "peer", "talks about his own site")
+        await self.handle(message("Нужен совет по сайту, коллеги"))
+        self.assertEqual(self.bot.sent, [])
+        self.assertEqual(await execute_query("SELECT verdict, ai_author FROM leads", fetchall=True),
+                         [("ai_dropped", "peer")])
+
+    async def test_the_ai_kind_replaces_the_rules_kind(self):
+        self.verdict = AiVerdict(True, "vacancy", "client", "hires a developer")
+        await self.handle(message("Нужен разработчик сайтов в штат"))
+        self.assertIn("Websites · Vacancy", self.bot.sent[0][1])
+
+    async def test_failed_ai_check_still_sends_the_lead(self):
+        await self.use_mode("filter")
+        self.verdict = None
+        await self.handle(message("Нужен сайт для студии"))
+        self.assertIn("AI check failed", self.bot.sent[0][1])
+
+    async def test_off_mode_and_no_key_skip_the_ai(self):
+        await self.use_mode("off")
+        await self.handle(message("Нужен сайт для студии"))
+        self.ai = NO_AI
+        await self.use_mode("labels")
+        await self.handle(message("Нужен сайт для кафе"))
+        self.assertEqual(self.checks, [])
+        self.assertEqual(len(self.bot.sent), 2)
+
+    async def test_ai_limit_warns_once_and_falls_back_to_rules(self):
+        self.limit = DailyLimit(2)
+        self.verdict = AiVerdict(True, "request", "client", "wants a site")
+        for text in ("Нужен сайт", "Нужен сайт для студии", "Нужен сайт для кафе"):
+            await self.handle(message(text))
+        self.assertEqual(len(self.checks), 2)
+        texts = [text for _, text, _ in self.bot.sent]
+        self.assertEqual(sum("AI checks are used up" in text for text in texts), 1)
+        self.assertNotIn("🤖 AI", texts[-1])

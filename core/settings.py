@@ -1,6 +1,7 @@
 from environs import Env
 from dataclasses import dataclass, field
 
+from core.leads.ai import AiConfig
 from core.modules import parse_modules
 
 
@@ -21,6 +22,7 @@ class Settings:
     bots: Bots
     telethon: Telethon
     modules: frozenset[str]
+    ai: AiConfig
 
 
 def get_settings(path: str):
@@ -36,7 +38,13 @@ def get_settings(path: str):
             api_id=env.int("API_ID"),
             api_hash=env.str("API_HASH")
         ),
-        modules=parse_modules(env.list("MODULES", ["mentions"]))
+        modules=parse_modules(env.list("MODULES", ["mentions"])),
+        # No default model: which one to use is the owner's choice and changes as better ones come out.
+        ai=AiConfig(
+            api_key=env.str("AI_API_KEY", ""),
+            model=env.str("AI_MODEL", ""),
+            base_url=env.str("AI_BASE_URL", "https://openrouter.ai/api/v1")
+        )
     )
 
 
