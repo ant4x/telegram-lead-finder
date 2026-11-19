@@ -1,3 +1,4 @@
+import time
 from html import escape
 
 from aiogram import Bot
@@ -5,14 +6,17 @@ from aiogram.filters import CommandObject
 from aiogram.types import CallbackQuery, Message
 
 from core.analyzer.history_scanner import try_start_scan
-from core.database.queries import get_lead_settings, get_niches, save_lead_settings, set_lead_verdict
+from core.database.queries import (get_lead_settings, get_niches, lead_stats, save_lead_settings,
+                                   set_lead_verdict)
 from core.handlers.analyzer_handlers import ANOTHER_SEARCH
 from core.keyboards.lead_kb import marked_keyboard
 from core.keyboards.lead_settings_kb import lead_settings_keyboard
 from core.leads.check import USAGE, parse_check_args, run_check
 from core.leads.preferences import settings_text, toggle_kind
 from core.leads.rules import KINDS
+from core.leads.stats import STATS_SECONDS, stats_lines
 from core.text import plural
+from core.utils.messages import send_lines
 from core.utils.telethon_client import client as telethon_client
 
 VERDICTS = ("reply", "not_lead")
@@ -75,3 +79,11 @@ async def check_chat_command(message: Message, command: CommandObject, bot: Bot)
         return
     await message.answer(f"🔎 Checking {escape(chat)} for the last {plural(days, 'day')}. This can take a while.",
                          parse_mode="HTML")
+
+
+async def lead_stats_command(message: Message):
+    rows = await lead_stats(message.from_user.id, since=int(time.time()) - STATS_SECONDS)
+    if not rows:
+        await message.answer("📭 No leads in the last 30 days yet.")
+        return
+    await send_lines(message, "<b>📈 Leads in the last 30 days</b>", stats_lines(rows))

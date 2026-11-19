@@ -25,8 +25,8 @@ from core.states.analyzer_states import AnalyzeStates
 from core.handlers.niche_handlers import (add_niche_start, process_niche_name, process_niche_word,
                                           list_niches_command, delete_niche_start, process_niche_deletion)
 from core.states.niche_states import NicheStates
-from core.handlers.lead_handlers import (check_chat_command, lead_settings_command, process_lead_setting,
-                                         process_lead_verdict)
+from core.handlers.lead_handlers import (check_chat_command, lead_settings_command, lead_stats_command,
+                                         process_lead_setting, process_lead_verdict)
 from core.leads.watch import process_lead_message
 from core.leads.retention import run_purge
 from core.utils.telethon_client import client as telethon_client
@@ -74,6 +74,7 @@ def register_leads_commands(dp: Dispatcher, leads_user):
     dp.message.register(delete_niche_start, Command(commands="del_niche"), leads_user)
     dp.message.register(lead_settings_command, Command(commands="lead_settings"), leads_user)
     dp.message.register(check_chat_command, Command(commands="check_chat"), leads_user)
+    dp.message.register(lead_stats_command, Command(commands="lead_stats"), leads_user)
 
 
 def register_leads_steps(dp: Dispatcher, leads_user):

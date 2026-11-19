@@ -216,3 +216,16 @@ async def save_lead_settings(user_id: int, settings: LeadSettings):
         "INSERT INTO lead_settings (user_id, kinds, ai_mode) VALUES (?, ?, ?)"
         " ON CONFLICT (user_id) DO UPDATE SET kinds = excluded.kinds, ai_mode = excluded.ai_mode",
         (user_id, kinds, settings.ai_mode))
+
+
+async def lead_stats(owner_id: int, since: int) -> list[tuple[str, int, int, int, int, int]]:
+    """
+    Per chat since the given time, most alerts first: the chat, alerts sent, marked "I'll reply", marked
+    "Not a lead", left unmarked, and dropped by the AI filter (those are not alerts).
+    """
+    return await execute_query(
+        "SELECT c.title, SUM(l.verdict IS NOT 'ai_dropped'), SUM(l.verdict IS 'reply'), SUM(l.verdict IS 'not_lead'),"
+        " SUM(l.verdict IS NULL), SUM(l.verdict IS 'ai_dropped')"
+        " FROM leads l JOIN channels c ON c.id = l.channel_db_id"
+        " WHERE l.owner_id = ? AND l.created_at >= ? GROUP BY c.id ORDER BY 2 DESC, c.title",
+        (owner_id, since), fetchall=True)

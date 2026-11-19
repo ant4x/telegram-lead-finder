@@ -30,6 +30,7 @@ COMMANDS = (
     Command("del_niche", "🗑", "Remove a niche", True, "leads"),
     Command("lead_settings", "⚙️", "Choose which leads to get", True, "leads"),
     Command("check_chat", "🔎", "Check a chat's recent history for leads", True, "leads"),
+    Command("lead_stats", "📈", "Lead statistics for 30 days", True, "leads"),
 )
 
 TAGLINES = {
