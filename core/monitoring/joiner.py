@@ -11,7 +11,7 @@ from math import ceil
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup
 from telethon import TelegramClient
-from telethon.errors import ChannelsTooMuchError, FloodWaitError
+from telethon.errors import ChannelsTooMuchError, FloodWaitError, InviteRequestSentError
 from telethon.tl.functions.channels import JoinChannelRequest
 
 from core.database.queries import get_all_channels
@@ -21,6 +21,8 @@ from core.text import plural
 JOIN_PAUSE_SECONDS = 60
 LISTED_TITLES = 30
 NO_CHANNELS = "📭 No channels to watch yet. Add them with /add_channel."
+BOT_CHECK = ("Groups often ask new members to prove they're not a bot within a minute. Open the reading account "
+             "and pass the check, or it may be removed.")
 
 # Channels an admin approved, in the order the account joins them.
 queue: asyncio.Queue = asyncio.Queue()
@@ -38,14 +40,22 @@ def approve_awaiting() -> int:
 
 
 async def join_next(channel, pending: asyncio.Queue, join, notify, sleep=asyncio.sleep) -> bool:
-    """Joins one channel and paces the next join. False when the account hit the channel limit and should stop."""
+    """
+    Joins one channel or group and paces the next join. False when the account hit the channel limit and should stop.
+    A chat that takes members by request gets one, and its admins decide.
+    """
     try:
-        joined_title = await join(channel)
+        joined = await join(channel)
     except FloodWaitError as e:
         await notify(f"⏳ Telegram asks to wait {ceil(e.seconds / 60)} min before joining more channels. "
                      f"I'll carry on after that.")
         await sleep(e.seconds)
         pending.put_nowait(channel)
+        return True
+    except InviteRequestSentError:
+        await notify(f"📨 {channel} takes new members by request. The reading account sent one; live alerts start "
+                     f"once the chat's admins approve it.")
+        await sleep(JOIN_PAUSE_SECONDS)
         return True
     except ChannelsTooMuchError:
         await notify("⚠️ The reading account is in too many channels (Telegram allows about 500), so it stopped "
@@ -55,8 +65,9 @@ async def join_next(channel, pending: asyncio.Queue, join, notify, sleep=asyncio
         logging.exception(f"Joining {channel} failed")
         return True
 
-    if joined_title:
-        await notify(f"📡 The reading account joined {joined_title}, so live alerts from it can arrive.")
+    if joined:
+        warning = f"\n\n⚠️ {BOT_CHECK}" if getattr(joined, "megagroup", False) else ""
+        await notify(f"📡 The reading account joined {joined.title}, so live alerts from it can arrive.{warning}")
         await sleep(JOIN_PAUSE_SECONDS)
     return True
 
@@ -91,15 +102,15 @@ async def check_channels(channels: list, get_entity, notify):
 async def run_joiner(bot: Bot, client: TelegramClient, admins: list[int]):
     """Checks the channel list with the admins at startup, then joins the channels they approve."""
 
-    async def join(channel) -> str | None:
-        """The title of the channel the account has just joined, or None when it is a member already."""
+    async def join(channel):
+        """The channel or group the account has just joined, or None when it is a member already."""
         entity = await client.get_entity(channel)
         if not entity.left:
             logging.info(f"Already in {entity.title}")
             return None
         await client(JoinChannelRequest(entity))
         logging.info(f"Joined {entity.title}")
-        return entity.title
+        return entity
 
     async def notify(text: str, keyboard: InlineKeyboardMarkup | None = None):
         for admin_id in admins:

@@ -1,14 +1,15 @@
 import asyncio
 import unittest
+from types import SimpleNamespace
 
-from telethon.errors import ChannelsTooMuchError, FloodWaitError
+from telethon.errors import ChannelsTooMuchError, FloodWaitError, InviteRequestSentError
 
 from core.monitoring import joiner
 from core.monitoring.joiner import JOIN_PAUSE_SECONDS, join_next
 
 
 class Fakes:
-    """Stands in for Telegram: join returns the given title (None: already a member) or raises; notes and pauses are recorded."""
+    """Stands in for Telegram: join returns the given chat (None: already a member) or raises; notes and pauses are recorded."""
 
     def __init__(self, result):
         self.result = result
@@ -31,13 +32,37 @@ class Fakes:
         return await join_next(channel, self.pending, self.join, self.notify, self.sleep)
 
 
+def joined(title, group=False):
+    """The chat the account has just joined, as Telethon describes it."""
+    return SimpleNamespace(title=title, megagroup=group)
+
+
 class JoinNextTest(unittest.IsolatedAsyncioTestCase):
     async def test_tells_the_admins_and_pauses_after_joining(self):
-        fakes = Fakes("Daily News")
+        fakes = Fakes(joined("Daily News"))
         self.assertTrue(await fakes.step())
         self.assertEqual(fakes.pauses, [JOIN_PAUSE_SECONDS])
         self.assertEqual(len(fakes.notes), 1)
         self.assertIn("joined Daily News", fakes.notes[0])
+
+    async def test_joining_a_group_warns_about_the_bot_check(self):
+        fakes = Fakes(joined("Web chat", group=True))
+        await fakes.step()
+        self.assertIn("joined Web chat", fakes.notes[0])
+        self.assertIn("not a bot", fakes.notes[0])
+
+    async def test_joining_a_channel_has_no_such_warning(self):
+        fakes = Fakes(joined("Daily News"))
+        await fakes.step()
+        self.assertNotIn("not a bot", fakes.notes[0])
+
+    async def test_a_join_request_is_reported_and_paced(self):
+        fakes = Fakes(InviteRequestSentError(request=None))
+        self.assertTrue(await fakes.step("@club"))
+        self.assertIn("@club", fakes.notes[0])
+        self.assertIn("by request", fakes.notes[0])
+        self.assertEqual(fakes.pauses, [JOIN_PAUSE_SECONDS])
+        self.assertTrue(fakes.pending.empty())
 
     async def test_stays_quiet_when_already_a_member(self):
         fakes = Fakes(None)
