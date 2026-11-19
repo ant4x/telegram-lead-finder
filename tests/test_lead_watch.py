@@ -1,10 +1,13 @@
+import asyncio
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 from core.database.queries import add_channel, add_niche, add_niche_word, execute_query, save_lead_settings
 from core.leads.ai import AiConfig, AiVerdict
 from core.leads.preferences import LeadSettings
 from core.leads.rules import KINDS
+from core.leads import watch
 from core.leads.watch import process_lead_message
 from core.limits import DailyLimit
 from tests.db import DbTestCase
@@ -39,6 +42,10 @@ class FakeBot:
 class LeadWatchTest(DbTestCase):
     async def asyncSetUp(self):
         await super().asyncSetUp()
+        # The bot runs one event loop; each test has its own, and on Python 3.10 a lock stays with its first loop.
+        patcher = mock.patch.object(watch, "dedup_lock", asyncio.Lock())
+        patcher.start()
+        self.addCleanup(patcher.stop)
         await add_channel(-1001, "webchat", "Web chat")
         await add_niche_word(await add_niche(10, "Websites"), "сайт*")
         await add_niche_word(await add_niche(20, "Repair"), "ремонт*")
@@ -49,8 +56,9 @@ class LeadWatchTest(DbTestCase):
         self.limit = DailyLimit(300)
 
     async def check(self, config, text, niches, kind):
-        """Stands in for the AI: records the call and gives the verdict the test set."""
+        """Stands in for the AI: records the call, lets other tasks run as a real request would, gives the verdict."""
         self.checks.append(text)
+        await asyncio.sleep(0)
         return self.verdict
 
     async def handle(self, event, at=NOW):
@@ -95,9 +103,12 @@ class LeadWatchTest(DbTestCase):
         await self.handle(message("Нужен сайт для студии"))
         self.assertEqual(len(self.bot.sent), 1)
 
-
-if __name__ == "__main__":
-    unittest.main()
+    async def test_the_same_text_arriving_at_once_alerts_once(self):
+        await add_channel(-1002, "seochat", "SEO chat")
+        await asyncio.gather(self.handle(message("Нужен сайт для студии")),
+                             self.handle(message("Нужен сайт для студии", chat_id=-1002)))
+        self.assertEqual(len(self.bot.sent), 1)
+        self.assertEqual(await execute_query("SELECT COUNT(*) FROM leads", fetchone=True), (1,))
 
 
 class AiCheckTest(LeadWatchTest):
@@ -152,3 +163,14 @@ class AiCheckTest(LeadWatchTest):
         texts = [text for _, text, _ in self.bot.sent]
         self.assertEqual(sum("AI checks are used up" in text for text in texts), 1)
         self.assertNotIn("🤖 AI", texts[-1])
+
+    async def test_leads_at_once_do_not_overshoot_the_ai_cap(self):
+        self.limit = DailyLimit(1)
+        self.verdict = AiVerdict(True, "request", "client", "wants a site")
+        await asyncio.gather(*(self.handle(message(text)) for text in
+                               ("Нужен сайт", "Нужен сайт для студии", "Нужен сайт для кафе")))
+        self.assertEqual(len(self.checks), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

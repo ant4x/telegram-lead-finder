@@ -229,3 +229,9 @@ async def lead_stats(owner_id: int, since: int) -> list[tuple[str, int, int, int
         " FROM leads l JOIN channels c ON c.id = l.channel_db_id"
         " WHERE l.owner_id = ? AND l.created_at >= ? GROUP BY c.id ORDER BY 2 DESC, c.title",
         (owner_id, since), fetchall=True)
+
+
+async def record_ai_verdict(lead_id: int, kind: str, ai_author: str, summary: str, verdict: str | None = None):
+    """Adds the AI's answer to a saved lead: its kind, who writes, what they need, and 'ai_dropped' if filtered."""
+    await execute_query("UPDATE leads SET kind = ?, ai_author = ?, summary = ?, verdict = ? WHERE id = ?",
+                        (kind, ai_author, summary, verdict, lead_id))
