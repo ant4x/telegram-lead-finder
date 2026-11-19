@@ -1,11 +1,10 @@
-import asyncio
 import logging
 from datetime import date, datetime, timezone
 from html import escape
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-from core.analyzer.history_scanner import start_full_scan
+from core.analyzer.history_scanner import start_full_scan, try_start_scan
 from core.utils.telethon_client import client as telethon_client
 from core.states.analyzer_states import AnalyzeStates
 from core.keyboards.confirmation_kb import button_analyze_confirm
@@ -19,9 +18,7 @@ from core.settings import settings
 
 SCAN_RESULTS_CACHE = {}
 OUT_OF_SEARCHES = f"⏳ You've used today's {SEARCHES_PER_DAY} searches. Come back tomorrow."
-
-# The running scan. Keeping the task here also keeps it alive: asyncio holds only a weak reference to tasks.
-scan_task: asyncio.Task | None = None
+ANOTHER_SEARCH = "⚠️ Another search is running. Please wait for it to finish and try again."
 
 search_limit = DailyLimit(SEARCHES_PER_DAY)
 
@@ -91,7 +88,6 @@ async def process_days_selection(callback: CallbackQuery, state: FSMContext):
 
 
 async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    global scan_task
     await callback.message.edit_reply_markup(reply_markup=None)
 
     user_id = callback.from_user.id
@@ -106,14 +102,10 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
         if not channels_from_db:
             await callback.message.edit_text("🚫 There are no channels to search yet. "
                                              "An admin can add them with /add_channel.")
-        # No await between these checks and create_task, so two presses cannot both start a scan or use one search twice.
+        # No await between these checks and the start, so two presses cannot both start a scan or use one search twice.
         elif out_of_searches(user_id):
             await callback.message.edit_text(OUT_OF_SEARCHES)
-        elif scan_task and not scan_task.done():
-            await callback.message.edit_text("⚠️ Another search is running. "
-                                             "Please wait for it to finish and try again.")
-        else:
-            scan_task = asyncio.create_task(run_scan(
+        elif not try_start_scan(lambda: run_scan(
                 client=telethon_client,
                 bot=bot,
                 user_id=user_id,
@@ -121,7 +113,9 @@ async def process_confirmation(callback: CallbackQuery, state: FSMContext, bot: 
                 keywords=[project_name],
                 results_cache=SCAN_RESULTS_CACHE,
                 days=days
-            ))
+        )):
+            await callback.message.edit_text(ANOTHER_SEARCH)
+        else:
             if not is_admin(user_id):
                 search_limit.use(user_id, today())
             await callback.message.edit_text(

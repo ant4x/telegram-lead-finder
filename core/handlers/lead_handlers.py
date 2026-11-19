@@ -1,10 +1,19 @@
+from html import escape
+
+from aiogram import Bot
+from aiogram.filters import CommandObject
 from aiogram.types import CallbackQuery, Message
 
-from core.database.queries import get_lead_settings, save_lead_settings, set_lead_verdict
+from core.analyzer.history_scanner import try_start_scan
+from core.database.queries import get_lead_settings, get_niches, save_lead_settings, set_lead_verdict
+from core.handlers.analyzer_handlers import ANOTHER_SEARCH
 from core.keyboards.lead_kb import marked_keyboard
 from core.keyboards.lead_settings_kb import lead_settings_keyboard
+from core.leads.check import USAGE, parse_check_args, run_check
 from core.leads.preferences import settings_text, toggle_kind
 from core.leads.rules import KINDS
+from core.text import plural
+from core.utils.telethon_client import client as telethon_client
 
 VERDICTS = ("reply", "not_lead")
 
@@ -46,3 +55,23 @@ async def process_lead_setting(callback: CallbackQuery):
     await callback.message.edit_text(settings_text(settings), reply_markup=lead_settings_keyboard(settings),
                                      parse_mode="HTML")
     await callback.answer()
+
+
+async def check_chat_command(message: Message, command: CommandObject, bot: Bot):
+    """Reads a chat's recent history for leads of the user's niches; one search runs at a time."""
+    parsed = parse_check_args(command.args)
+    if not parsed:
+        await message.answer(USAGE)
+        return
+
+    chat, days = parsed
+    user_id = message.from_user.id
+    niches = await get_niches(user_id)
+    if not niches:
+        await message.answer("📭 Add a niche first with /add_niche: the check looks for its leads.")
+        return
+    if not try_start_scan(lambda: run_check(telethon_client, bot, user_id, chat, days, niches)):
+        await message.answer(ANOTHER_SEARCH)
+        return
+    await message.answer(f"🔎 Checking {escape(chat)} for the last {plural(days, 'day')}. This can take a while.",
+                         parse_mode="HTML")

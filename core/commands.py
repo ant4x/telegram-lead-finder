@@ -29,6 +29,7 @@ COMMANDS = (
     Command("list_niches", "📋", "List your niches", True, "leads"),
     Command("del_niche", "🗑", "Remove a niche", True, "leads"),
     Command("lead_settings", "⚙️", "Choose which leads to get", True, "leads"),
+    Command("check_chat", "🔎", "Check a chat's recent history for leads", True, "leads"),
 )
 
 TAGLINES = {
