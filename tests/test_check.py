@@ -2,7 +2,7 @@ import unittest
 
 from core.analyzer.history_scanner import ScanResult
 from core.leads.check import check_report, lead_matcher, parse_check_args
-from tests.lead_corpus import POWER, WEB
+from tests.lead_corpus import WEB
 
 
 class ParseCheckArgsTest(unittest.TestCase):

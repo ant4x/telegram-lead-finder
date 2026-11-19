@@ -10,9 +10,10 @@ from core.settings import settings
 from core.access import can_use_leads
 from core.commands import enabled_commands
 from core.handlers.basic import start, filter_text, admins_only
+from core.handlers.dialog import cancel_dialog
 from core.handlers.errors import UNCHANGED, unchanged_message
 from core.handlers.management_handlers import (
-    add_channel_start, process_channel_identifier, cancel_dialog, list_channels_command,
+    add_channel_start, process_channel_identifier, list_channels_command,
     delete_channel_start, process_delete_choice, process_delete_from_list,
     process_delete_by_name, process_delete_confirmation, add_project_start, process_project_add_name,
     list_projects_command, delete_project_start, process_project_deletion, process_join, process_join_skip

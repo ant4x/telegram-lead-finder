@@ -52,15 +52,6 @@ async def process_channel_identifier(message: Message, state: FSMContext):
         await message.answer(f"🤷‍♂️ Something went wrong: {e}\n\nTry another channel, or send /cancel.")
 
 
-async def cancel_dialog(message: Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state is None:
-        return
-
-    await state.clear()
-    await message.answer("☑️ Canceled.")
-
-
 async def list_channels_command(message: Message):
     channels = await get_all_channels_with_details()
     if not channels:
