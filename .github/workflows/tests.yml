@@ -1,0 +1,36 @@
+# The bot's tests, every night on main and on demand: "Run workflow" in Actions, or `gh workflow run tests.yml`.
+# Not on every push, as on the author's site: a break still shows by the morning. The tests need no secrets and no
+# Telegram: fakes stand in for it, and no test reads .env.
+name: Tests
+
+on:
+  # 23:17 UTC: GitHub delays or drops scheduled runs at the top of the hour under load.
+  schedule:
+    - cron: "17 23 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    # A fixed image, never ubuntu-latest, so a change of the image cannot break the run by itself.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest version the README promises, and the newest.
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - run: python -m unittest discover -s tests -t .
