@@ -7,6 +7,20 @@ A Telegram bot that watches Telegram channels and groups. It has two modules, an
 
 Built in June 2025 to measure how widely crypto projects were promoted ("shilled") across Telegram channels. The lead finder was added in November 2026 on the same engine.
 
+A lead alert as it arrives in the bot's chat (the message and the names are invented):
+
+```text
+Lead · Websites and SEO · Request
+Chat: Freelance orders
+From: @maria_yoga
+
+"Looking for a Next.js developer to rebuild our yoga studio website, budget around $1500."
+AI: client · a new website for a yoga studio, about $1500
+
+Open the message · Message the author
+[ I'll reply ]  [ Not a lead ]
+```
+
 ## What it does
 
 ### Mentions
@@ -16,8 +30,8 @@ Built in June 2025 to measure how widely crypto projects were promoted ("shilled
 
 ### Lead finder
 
-- **Niches.** A niche is a topic with the words people use for it: "Websites and SEO" with `сайт*`, `SEO`, `Next.js`; "Repair" with `ремонт*`, `сантехник*`. It works for any trade.
-- **Three kinds of leads.** A request ("нужен сайт", "looking for an SEO specialist"), a problem ("сайт не открывается", "our website is broken") and a vacancy ("ищем Next.js-разработчика в штат"). Typical phrases of people offering their own services or looking for work, such as "наша студия" or "ищу работу", rule a message out; the rules catch words, not intent, so some ads still come through, and the AI check is there for those.
+- **Niches.** A niche is a topic with the words people use for it: "Websites and SEO" with `сайт*` (website), `SEO`, `Next.js`; "Repair" with `ремонт*` (repair), `сантехник*` (plumber). It works for any trade, in Russian and English.
+- **Three kinds of leads.** A request: "нужен сайт" (need a website), "looking for an SEO specialist". A problem: "сайт не открывается" (the site won't open), "our website is broken". A vacancy: "ищем Next.js-разработчика в штат" (hiring a Next.js developer). Phrases of people selling their own services or looking for work, such as "наша студия" (our studio) or "ищу работу" (looking for a job), rule a message out. The rules catch words, not intent, so some ads still come through; the AI check is there for those.
 - **Alerts.** Each alert names the kind, the niche, the chat and the author, quotes the message and links to it and, when the author has a username, to the author. Two buttons, "I'll reply" and "Not a lead", record what you made of it. The same text posted in several chats alerts once a day.
 - **Check a chat first** (`/check_chat @chat [days]`). Reads the last 7 days, or up to 30, without joining, and shows how many requests, problems and vacancies your niches would have caught, with examples. It shows whether a chat is worth adding before the reading account joins it.
 - **Settings** (`/lead_settings`). Turn each kind on or off: problems are the noisiest kind in professional chats, where colleagues ask each other.
@@ -30,7 +44,7 @@ Both modules share the list of watched channels and groups, which admins edit wi
 
 Words match whole, in any case: `ton` finds "TON is up" but not "button". A word ending in `*` matches every word that starts with it: `сайт*` finds "сайт", "сайта" and "сайтом", which covers the forms of a Russian word.
 
-A message is a lead when it has a word of one of your niches, a phrase of one of the kinds ("ищу", "нужен", "кто сделает", "looking for", "не работает", "вакансия", "hiring"...) and none of the exclusions ("#резюме", "ищу работу", "наша студия", "#помогу"...). Job board hashtags such as `#вакансия` and `#ищу` decide the kind outright. A message with phrases of two kinds gets the first of request, vacancy, problem. The phrases are in `core/leads/phrases.py`; `tests/lead_corpus.py` holds invented sample messages with the answer the rules must give.
+A message is a lead when it has a word of one of your niches, a phrase of one of the kinds ("ищу" looking for, "нужен" need, "кто сделает" who will make, "looking for", "не работает" doesn't work, "вакансия" vacancy, "hiring"...) and none of the exclusions ("#резюме" resume, "ищу работу", "наша студия", "#помогу" I can help...). The words of a phrase may be split by a line break. Job board hashtags such as `#вакансия` and `#ищу` decide the kind outright. A message with phrases of two kinds gets the first of request, vacancy, problem: "ищем подрядчика" (looking for a contractor) is an order, not a job. The phrases are in `core/leads/phrases.py`; `tests/lead_corpus.py` holds invented sample messages with the answer the rules must give.
 
 ## How it works
 
@@ -62,7 +76,7 @@ The reading account is a real Telegram account, so the bot treats it with care:
 - **It never leaves a chat.** Removing a chat from the list keeps the account in it, so the bot cannot unsubscribe the owner from chats they read.
 - **Searches are rationed.** Anyone can search three times a day over up to 30 days; admins have no limit and can go back 180 days. One search or chat check runs at a time, with pauses between chats. The search reads channels and groups only, never the account's private chats.
 - **Rights are checked on every step.** Every admin command, dialog step and button checks the sender, because anyone can send a bot any button data. Niches, settings and leads belong to the user who made them, and only that user can change them.
-- **The session stays local.** The session file gives full access to the account. It is kept out of git, and the session can be ended in Telegram under Settings, Devices. If you run the bot on a server, use a separate Telegram account for reading.
+- **The session stays local.** The session file gives full access to the account. It is kept out of git, and the session can be ended in Telegram under Settings, Devices. A separate Telegram account for reading is safer, and on a server it is a must: you still answer leads from your own.
 
 ## What people wrote
 
@@ -124,7 +138,7 @@ You need Python 3.10 or newer, a Telegram account to read the chats and a bot to
 python -m unittest discover -s tests -t .
 ```
 
-133 tests cover the parts that do not need Telegram: keyword matching, the lead rules on a corpus of sample messages, alerts and their escaping, repeated texts, the 30-day erasing, niches, settings and statistics on a fresh database, the AI answer parsing with its failures and daily cap, the chat check, the history search, the daily search limit, the startup check of the chat list and the joining logic. Fakes stand in for Telegram and the AI.
+139 tests cover the parts that do not need Telegram: keyword matching, the lead rules on a corpus of sample messages, alerts and their escaping, repeated texts arriving at once, the 30-day erasing, niches, settings and statistics on a fresh database, the AI answer parsing with its failures and daily cap, the chat check, the history search, the daily search limit, the startup check of the chat list with a chat that cannot be opened, the joining logic and a second tap on a button. Fakes stand in for Telegram and the AI.
 
 ## Limits
 
