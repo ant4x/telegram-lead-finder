@@ -21,9 +21,9 @@ from core.text import INVALID_KEYWORD, plural, valid_keyword
 
 async def add_channel_start(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("➡️ Let's add channels.\n\n"
-                         "👉 Send a channel username, link or ID.\n"
-                         "📡 Live alerts need the reading account to be in a channel. "
+    await message.answer("➡️ Let's add channels and groups.\n\n"
+                         "👉 Send a channel or group username, link or ID.\n"
+                         "📡 Live alerts need the reading account to be in it. "
                          "I'll ask before it joins one.\n"
                          "🛑 Send /cancel when you're done.")
     await state.set_state(AddChannelStates.waiting_for_identifier)

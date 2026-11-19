@@ -1,15 +1,17 @@
 import logging
+from collections.abc import Awaitable, Callable
 from html import escape
 from telethon import events
 from telethon.client import TelegramClient
 from aiogram import Bot
 from core.database.queries import (get_all_projects, find_channel_db_id_by_telegram_id,
                                       save_post, log_mention)
-from core.settings import settings
 from core.text import mentions, post_link, quote
 
+Handler = Callable[[events.NewMessage.Event], Awaitable[None]]
 
-async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
+
+async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot, admins: list[int]):
     """
     Records a new post that mentions a project and notifies the admins. Channels and projects are read
     from the database for every post, so the ones added or deleted by admins apply without a restart.
@@ -50,7 +52,7 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
             f"<a href='{link}'><b>Open the post</b></a>"
         )
 
-        for admin_id in settings.bots.admins_id:
+        for admin_id in admins:
             try:
                 await bot.send_message(admin_id, notification_text, parse_mode="HTML",
                                        disable_web_page_preview=True)
@@ -61,11 +63,20 @@ async def process_new_channel_post(event: events.NewMessage.Event, bot: Bot):
         logging.exception("New post handling failed")
 
 
-def start_monitoring(bot: Bot, client: TelegramClient):
-    """Hands every new post of a channel or a group to process_new_channel_post while the client is connected."""
+async def dispatch(event: events.NewMessage.Event, handlers: list[Handler]):
+    """Hands the message to every enabled module in turn; a module that fails does not stop the others."""
+    for handle in handlers:
+        try:
+            await handle(event)
+        except Exception:
+            logging.exception("A module failed on a new message")
+
+
+def start_monitoring(client: TelegramClient, handlers: list[Handler]):
+    """Hands every new message of a channel or a group to the enabled modules while the client is connected."""
 
     @client.on(events.NewMessage(func=lambda event: event.is_channel))
     async def handler(event: events.NewMessage.Event):
-        await process_new_channel_post(event, bot)
+        await dispatch(event, handlers)
 
     logging.info("Watching new posts")

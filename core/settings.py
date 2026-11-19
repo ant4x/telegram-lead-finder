@@ -1,6 +1,8 @@
 from environs import Env
 from dataclasses import dataclass, field
 
+from core.modules import parse_modules
+
 
 @dataclass
 class Bots:
@@ -18,6 +20,7 @@ class Telethon:
 class Settings:
     bots: Bots
     telethon: Telethon
+    modules: frozenset[str]
 
 
 def get_settings(path: str):
@@ -32,7 +35,8 @@ def get_settings(path: str):
         telethon=Telethon(
             api_id=env.int("API_ID"),
             api_hash=env.str("API_HASH")
-        )
+        ),
+        modules=parse_modules(env.list("MODULES", ["mentions"]))
     )
 
 
