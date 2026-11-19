@@ -25,7 +25,7 @@ from core.states.analyzer_states import AnalyzeStates
 from core.handlers.niche_handlers import (add_niche_start, process_niche_name, process_niche_word,
                                           list_niches_command, delete_niche_start, process_niche_deletion)
 from core.states.niche_states import NicheStates
-from core.handlers.lead_handlers import process_lead_verdict
+from core.handlers.lead_handlers import lead_settings_command, process_lead_setting, process_lead_verdict
 from core.leads.watch import process_lead_message
 from core.leads.retention import run_purge
 from core.utils.telethon_client import client as telethon_client
@@ -71,6 +71,7 @@ def register_leads_commands(dp: Dispatcher, leads_user):
     dp.message.register(add_niche_start, Command(commands="add_niche"), leads_user)
     dp.message.register(list_niches_command, Command(commands="list_niches"), leads_user)
     dp.message.register(delete_niche_start, Command(commands="del_niche"), leads_user)
+    dp.message.register(lead_settings_command, Command(commands="lead_settings"), leads_user)
 
 
 def register_leads_steps(dp: Dispatcher, leads_user):
@@ -80,6 +81,7 @@ def register_leads_steps(dp: Dispatcher, leads_user):
 
     dp.callback_query.register(process_niche_deletion, F.data.startswith("del_niche"), leads_user)
     dp.callback_query.register(process_lead_verdict, F.data.startswith("lead:"), leads_user)
+    dp.callback_query.register(process_lead_setting, F.data.startswith("lead_set:"), leads_user)
 
 
 async def main():

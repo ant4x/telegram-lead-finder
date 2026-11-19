@@ -8,7 +8,8 @@ import time
 from aiogram import Bot
 from telethon import events
 
-from core.database.queries import find_channel_db_id_by_telegram_id, get_niches, save_lead, seen_recently
+from core.database.queries import (find_channel_db_id_by_telegram_id, get_lead_settings, get_niches, save_lead,
+                                   seen_recently)
 from core.keyboards.lead_kb import lead_keyboard
 from core.leads.alert import alert_text, author_of
 from core.leads.rules import lead_kind, matching_niches, text_hash
@@ -18,7 +19,10 @@ DEDUP_SECONDS = 24 * 3600
 
 
 async def process_lead_message(event: events.NewMessage.Event, bot: Bot, now=time.time):
-    """Alerts every owner whose niches the message matches, once a day for the same text sent around."""
+    """
+    Alerts every owner whose niches the message matches and who wants this kind of lead, once a day for the same
+    text sent around.
+    """
     text = event.message.raw_text or ""
     if not text or event.out:
         return
@@ -46,6 +50,8 @@ async def process_lead_message(event: events.NewMessage.Event, bot: Bot, now=tim
         owners.setdefault(niche.owner_id, []).append(niche.name)
 
     for owner_id, niche_names in owners.items():
+        if kind not in (await get_lead_settings(owner_id)).kinds:
+            continue
         if await seen_recently(owner_id, fingerprint, created_at - DEDUP_SECONDS):
             continue
         lead_id = await save_lead(owner_id, channel_db_id, event.message.id, link, author.name, kind, text,

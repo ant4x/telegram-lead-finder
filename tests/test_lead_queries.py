@@ -1,7 +1,9 @@
 import unittest
 
 from core.database.queries import (add_channel, add_niche, add_niche_word, delete_niche, execute_query,
-                                   get_niches, purge_old_leads, save_lead, seen_recently, set_lead_verdict)
+                                   get_lead_settings, get_niches, purge_old_leads, save_lead, save_lead_settings,
+                                   seen_recently, set_lead_verdict)
+from core.leads.preferences import DEFAULT_SETTINGS, LeadSettings
 from core.leads.rules import Niche
 from tests.db import DbTestCase
 
@@ -74,6 +76,18 @@ class LeadQueriesTest(DbTestCase):
                          (None, None, None, None, None, None, "request", "not_lead"))
         self.assertEqual(await execute_query(query, (new,), fetchone=True),
                          ("Нужен сайт", "@ann", "https://t.me/webchat/5", 5, "h1", None, "request", None))
+
+
+class LeadSettingsQueriesTest(DbTestCase):
+    async def test_settings_default_until_saved(self):
+        self.assertEqual(await get_lead_settings(10), DEFAULT_SETTINGS)
+
+    async def test_saved_settings_come_back(self):
+        await save_lead_settings(10, LeadSettings(frozenset({"request"}), "filter"))
+        self.assertEqual(await get_lead_settings(10), LeadSettings(frozenset({"request"}), "filter"))
+        await save_lead_settings(10, LeadSettings(frozenset(), "off"))
+        self.assertEqual(await get_lead_settings(10), LeadSettings(frozenset(), "off"))
+        self.assertEqual(await get_lead_settings(20), DEFAULT_SETTINGS)
 
 
 if __name__ == "__main__":

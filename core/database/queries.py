@@ -4,7 +4,8 @@ import aiosqlite
 from typing import Any
 
 from core.database.schema import SCHEMA
-from core.leads.rules import Niche
+from core.leads.preferences import DEFAULT_SETTINGS, LeadSettings
+from core.leads.rules import KINDS, Niche
 
 
 DB_NAME = "shillometer.db"
@@ -198,3 +199,20 @@ async def purge_old_leads(before: int) -> int:
     return await execute_changes(
         "UPDATE leads SET text = NULL, author = NULL, summary = NULL, link = NULL, message_id = NULL, text_hash = NULL"
         " WHERE created_at < ? AND link IS NOT NULL", (before,))
+
+
+async def get_lead_settings(user_id: int) -> LeadSettings:
+    """The user's lead settings; the defaults until they change something."""
+    row = await execute_query("SELECT kinds, ai_mode FROM lead_settings WHERE user_id = ?", (user_id,), fetchone=True)
+    if not row:
+        return DEFAULT_SETTINGS
+    kinds, ai_mode = row
+    return LeadSettings(frozenset(kind for kind in kinds.split(",") if kind), ai_mode)
+
+
+async def save_lead_settings(user_id: int, settings: LeadSettings):
+    kinds = ",".join(kind for kind in KINDS if kind in settings.kinds)
+    await execute_query(
+        "INSERT INTO lead_settings (user_id, kinds, ai_mode) VALUES (?, ?, ?)"
+        " ON CONFLICT (user_id) DO UPDATE SET kinds = excluded.kinds, ai_mode = excluded.ai_mode",
+        (user_id, kinds, settings.ai_mode))

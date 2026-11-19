@@ -28,6 +28,7 @@ COMMANDS = (
     Command("add_niche", "🎯", "Add a niche of leads", True, "leads"),
     Command("list_niches", "📋", "List your niches", True, "leads"),
     Command("del_niche", "🗑", "Remove a niche", True, "leads"),
+    Command("lead_settings", "⚙️", "Choose which leads to get", True, "leads"),
 )
 
 TAGLINES = {

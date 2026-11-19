@@ -1,7 +1,8 @@
 import unittest
 from types import SimpleNamespace
 
-from core.database.queries import add_channel, add_niche, add_niche_word
+from core.database.queries import add_channel, add_niche, add_niche_word, save_lead_settings
+from core.leads.preferences import LeadSettings
 from core.leads.watch import process_lead_message
 from tests.db import DbTestCase
 
@@ -72,6 +73,13 @@ class LeadWatchTest(DbTestCase):
     async def test_no_niche_word_no_alert(self):
         await self.handle(message("Нужен электрик"))
         self.assertEqual(self.bot.sent, [])
+
+    async def test_a_kind_turned_off_sends_nothing(self):
+        await save_lead_settings(10, LeadSettings(frozenset({"request", "vacancy"}), "labels"))
+        await self.handle(message("Сайт перестал открываться, помогите"))
+        self.assertEqual(self.bot.sent, [])
+        await self.handle(message("Нужен сайт для студии"))
+        self.assertEqual(len(self.bot.sent), 1)
 
 
 if __name__ == "__main__":
