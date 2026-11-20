@@ -163,13 +163,13 @@ Python 3.10+, aiogram 3, Telethon 1.40, aiosqlite, aiohttp, environs, unittest.
 
 ## How I built it
 
+I led the development end to end and used AI coding agents as tools: Claude Code, OpenAI Codex and Google Gemini. The commits went through Claude Code, so they carry its co-author line.
+
 The first commit is the June 2025 version as it ran, without the list of channels it watched. The commits after it, from November 2026, review and fix that code, then add the lead finder step by step; each one says what changed and why.
 
-Since November 2026 I have worked on it with Claude Code, an AI coding assistant, and the commits say so:
-
-- **My part:** what the bot is for and the decisions a user feels. Three kinds of leads; rules first and the AI only on what they found; the bot never writes to anyone, and a person replies from their own account; asking before joining any chat; erasing what people wrote after 30 days; a cap of 300 AI checks a day; the labels and filter modes. They were agreed in a design and a task-by-task plan before any code, and I ran the bot on live channels.
-- **The assistant's part:** most of the code and the tests, task by task against that plan, each change with a test that failed first.
-- **Reviews:** reviewers who had not seen the code read it again after it was written and found what the tests had missed. Two copies of a message arriving at the same moment sent two alerts (`7a5b3b1`); a chat that banned the reading account stopped all joining, and erased leads stayed readable in the database file (both `cccf967`).
+- **Decisions:** what the bot is for and everything a user feels. Three kinds of leads; rules first and the AI only on what they found; the bot never writes to anyone, and a person replies from their own account; asking before joining any chat; erasing what people wrote after 30 days; a cap of 300 AI checks a day; the labels and filter modes.
+- **Process:** a design and a task-by-task plan before any code, each change with a test that failed first, nothing pushed without my approval, and runs on live channels.
+- **Reviews:** separate AI reviewers that had not seen the code found what the tests had missed: two copies of a message arriving at once sent two alerts (`7a5b3b1`); a chat that banned the reading account stopped all joining, and erased leads stayed readable in the database file (both `cccf967`).
 
 ## License
 
